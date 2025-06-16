@@ -80,7 +80,7 @@ export default function LandingPage() {
       </div>
       
       <div className="relative z-10 space-y-8 max-w-2xl">
-        <h1 className="text-6xl md:text-7xl font-bold font-headline text-primary animate-fade-in-down">
+        <h1 className="text-6xl md:text-7xl font-bold font-headline text-primary animate-fade-in-down text-center">
           Lookbook
         </h1>
         <p className="text-xl md:text-2xl text-foreground/80 font-body animate-fade-in-up delay-200">
