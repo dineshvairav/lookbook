@@ -4,7 +4,7 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, XCircle, Circle } from 'lucide-react'; // Using XCircle for skip
+import { ChevronLeft, ChevronRight, ArrowRightToLine } from 'lucide-react'; // Changed XCircle to ArrowRightToLine
 
 interface OnboardingSlidesProps {
   onComplete: () => void;
@@ -60,7 +60,7 @@ export function OnboardingSlides({ onComplete, onSkip }: OnboardingSlidesProps) 
         className="absolute top-6 right-6 text-muted-foreground hover:text-foreground z-20"
         aria-label="Skip onboarding"
       >
-        <XCircle className="h-6 w-6" />
+        <ArrowRightToLine className="h-6 w-6" /> {/* Changed icon here */}
       </Button>
 
       <div className="bg-card p-6 sm:p-10 rounded-xl shadow-2xl w-full max-w-md text-center relative flex flex-col" style={{minHeight: '70vh'}}>
@@ -81,14 +81,14 @@ export function OnboardingSlides({ onComplete, onSkip }: OnboardingSlidesProps) 
         </div>
         
         <div className="mt-auto">
-          <div className="flex justify-center space-x-2 mb-8">
+          <div className="flex justify-center items-center space-x-2 mb-8"> {/* Added items-center for vertical alignment if needed */}
             {slidesContent.map((_, index) => (
               <button
                 key={index}
                 onClick={() => setCurrentSlide(index)}
                 aria-label={`Go to slide ${index + 1}`}
-                className={`h-3 w-3 rounded-full transition-all duration-300 ${
-                  currentSlide === index ? 'bg-primary scale-125' : 'bg-muted hover:bg-muted-foreground/50'
+                className={`h-3 rounded-full transition-all duration-300 ${
+                  currentSlide === index ? 'bg-primary w-6' : 'bg-muted w-3 hover:bg-muted-foreground/50'
                 }`}
               />
             ))}
