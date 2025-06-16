@@ -15,7 +15,6 @@ export default function ShopPage() {
   const [categories, setCategoriesData] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [sortKey, setSortKey] = useState<string>("default");
 
   useEffect(() => {
     async function fetchData() {
@@ -36,24 +35,18 @@ export default function ShopPage() {
     fetchData();
   }, []);
   
-  const filteredAndSortedProducts = useMemo(() => {
+  const filteredProducts = useMemo(() => {
     let itemsToDisplay = [...allProducts];
 
     if (selectedCategory && selectedCategory !== 'all') {
       itemsToDisplay = itemsToDisplay.filter(p => p.category.toLowerCase() === selectedCategory.toLowerCase());
     }
+    
+    // Default sort by name or keep original order from data source if no specific sort is implied
+    itemsToDisplay.sort((a,b) => a.name.localeCompare(b.name));
 
-    if (sortKey) {
-      if (sortKey === 'price-asc') {
-        itemsToDisplay.sort((a, b) => a.price - b.price);
-      } else if (sortKey === 'price-desc') {
-        itemsToDisplay.sort((a, b) => b.price - a.price);
-      } else if (sortKey === 'name-asc') {
-        itemsToDisplay.sort((a,b) => a.name.localeCompare(b.name));
-      }
-    }
     return itemsToDisplay;
-  }, [allProducts, selectedCategory, sortKey]);
+  }, [allProducts, selectedCategory]);
 
 
   return (
@@ -65,12 +58,10 @@ export default function ShopPage() {
           <FilterSortControls
             categories={categories}
             onFilterChange={setSelectedCategory}
-            onSortChange={setSortKey}
             currentCategory={selectedCategory}
-            currentSort={sortKey}
           />
         )}
-        <ProductList products={filteredAndSortedProducts} isLoading={isLoading} />
+        <ProductList products={filteredProducts} isLoading={isLoading} />
       </main>
       <Footer />
     </div>
