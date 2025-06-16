@@ -1,4 +1,6 @@
 
+"use client"; // Add this directive
+
 import Link from "next/link";
 import { ThemeToggle } from "./ThemeToggle";
 import { AuthDialog } from "@/components/auth/AuthDialog";
@@ -51,3 +53,4 @@ export function Header() {
     </header>
   );
 }
+
