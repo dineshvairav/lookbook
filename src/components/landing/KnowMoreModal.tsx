@@ -19,6 +19,9 @@ interface KnowMoreModalProps {
 }
 
 export function KnowMoreModal({ isOpen, onClose }: KnowMoreModalProps) {
+  const address = "123 Style Avenue, Fashion City, FC 54321";
+  const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[480px] bg-card rounded-lg shadow-xl">
@@ -33,7 +36,14 @@ export function KnowMoreModal({ isOpen, onClose }: KnowMoreModalProps) {
             <MapPin className="h-6 w-6 text-primary mt-1 shrink-0" />
             <div>
               <h4 className="font-semibold text-foreground">Address</h4>
-              <p className="text-muted-foreground">123 Style Avenue, Fashion City, FC 54321</p>
+              <a 
+                href={googleMapsUrl} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-muted-foreground hover:text-primary transition-colors"
+              >
+                {address}
+              </a>
             </div>
           </div>
           <div className="flex items-start space-x-3">
