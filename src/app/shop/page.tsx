@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { getProducts, getCategories } from "@/lib/data";
@@ -16,6 +16,7 @@ export default function ShopPage() {
   const [categories, setCategoriesData] = useState<CategoryType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>("all");
+  const productsSectionRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -28,7 +29,6 @@ export default function ShopPage() {
         setAllProducts(fetchedProducts);
         setCategoriesData(fetchedCategories.map(c => ({
           ...c,
-          // Add a placeholder imageUrl if not present for CategoryCard
           imageUrl: c.imageUrl || `https://placehold.co/300x200.png` 
         })));
       } catch (error) {
@@ -41,13 +41,15 @@ export default function ShopPage() {
 
   const handleCategorySelect = (categoryId: string) => {
     setSelectedCategoryId(categoryId);
+    if (productsSectionRef.current) {
+      productsSectionRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   };
 
   const dealProducts = useMemo(() => {
     if (selectedCategoryId === "all") {
-      return allProducts; // Show all products if 'All' is selected
+      return allProducts;
     }
-    // Filter products based on the selected category ID
     return allProducts.filter(p => p.category.toLowerCase() === selectedCategoryId.toLowerCase());
   }, [allProducts, selectedCategoryId]);
 
@@ -84,7 +86,7 @@ export default function ShopPage() {
           )}
         </section>
 
-        <section id="deal-products" className="mb-12">
+        <section id="deal-products" ref={productsSectionRef} className="mb-12 scroll-mt-20"> {/* Added scroll-mt-20 for better spacing with sticky header */}
           <h2 className="text-3xl font-bold mb-6 text-center font-headline text-accent">
             {selectedCategoryId === 'all' ? 'Featured Products' : `${categories.find(c=>c.id === selectedCategoryId)?.name || 'Products'}`}
           </h2>
@@ -115,7 +117,7 @@ export default function ShopPage() {
             </ScrollArea>
           ) : (
             <p className="text-center text-muted-foreground font-body text-lg py-10">
-              No products found in this category.
+              No products found in this category. Explore other styles!
             </p>
           )}
         </section>
@@ -124,4 +126,3 @@ export default function ShopPage() {
     </div>
   );
 }
-
