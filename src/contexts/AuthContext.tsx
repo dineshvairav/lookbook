@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { User } from "@/lib/types";
@@ -6,7 +7,7 @@ import React, { createContext, useState, useContext, ReactNode, useEffect } from
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
-  login: (email: string) => Promise<void>; // Simplified login
+  login: (email: string) => Promise<void>; 
   logout: () => Promise<void>;
 }
 
@@ -17,7 +18,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate checking auth status on load
     const storedUser = localStorage.getItem("lookbookUser");
     if (storedUser) {
       setUser(JSON.parse(storedUser));
@@ -27,9 +27,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (email: string) => {
     setIsLoading(true);
-    // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 500));
-    const mockUser: User = { id: "1", email, name: email.split('@')[0] };
+    
+    // Mock dealer logic: if email contains "dealer", mark as dealer
+    const isDealer = email.toLowerCase().includes("dealer");
+    
+    const mockUser: User = { 
+      id: Date.now().toString(), // More unique ID for mock
+      email, 
+      name: email.split('@')[0],
+      isDealer: isDealer 
+    };
     setUser(mockUser);
     localStorage.setItem("lookbookUser", JSON.stringify(mockUser));
     setIsLoading(false);
@@ -37,7 +45,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = async () => {
     setIsLoading(true);
-    // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 300));
     setUser(null);
     localStorage.removeItem("lookbookUser");

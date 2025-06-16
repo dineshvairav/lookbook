@@ -1,11 +1,11 @@
 import type { Product, Category } from './types';
 
 export const categories: Category[] = [
-  { id: 'all', name: 'All' },
-  { id: 'outerwear', name: 'Outerwear' },
-  { id: 'dresses', name: 'Dresses' },
-  { id: 'accessories', name: 'Accessories' },
-  { id: 'footwear', name: 'Footwear' },
+  { id: 'all', name: 'All', imageUrl: 'https://placehold.co/300x200/A9A9A9/FFFFFF.png' },
+  { id: 'outerwear', name: 'Outerwear', imageUrl: 'https://placehold.co/300x200/B0C4DE/FFFFFF.png' },
+  { id: 'dresses', name: 'Dresses', imageUrl: 'https://placehold.co/300x200/FFC0CB/333333.png' },
+  { id: 'accessories', name: 'Accessories', imageUrl: 'https://placehold.co/300x200/D2B48C/FFFFFF.png' },
+  { id: 'footwear', name: 'Footwear', imageUrl: 'https://placehold.co/300x200/8FBC8F/FFFFFF.png' },
 ];
 
 export const products: Product[] = [
@@ -13,7 +13,9 @@ export const products: Product[] = [
     id: '1',
     name: 'Timeless Trench Coat',
     description: 'A classic beige trench coat, perfect for transitional weather. Crafted from water-resistant cotton gabardine with a double-breasted front and belted waist.',
-    price: 299.99,
+    mrp: 349.99,
+    mop: 299.99,
+    dp: 249.99,
     category: 'Outerwear',
     imageUrl: 'https://placehold.co/600x800.png',
     features: 'Water-resistant, Double-breasted, Belted waist, Horn buttons, Cotton gabardine',
@@ -27,8 +29,10 @@ export const products: Product[] = [
     id: '2',
     name: 'Elegant Silk Blouse',
     description: 'A luxurious silk blouse with a relaxed fit and mother-of-pearl buttons. Ideal for both office wear and evening occasions.',
-    price: 149.50,
-    category: 'Tops', // Assuming Tops is a valid category, if not, add it to categories list
+    mrp: 179.00,
+    mop: 149.50,
+    dp: 119.00,
+    category: 'Tops', 
     imageUrl: 'https://placehold.co/600x800.png',
     features: '100% Mulberry Silk, Relaxed fit, Mother-of-pearl buttons, Long sleeves',
      images: [
@@ -40,7 +44,9 @@ export const products: Product[] = [
     id: '3',
     name: 'Bohemian Maxi Dress',
     description: 'Flowy and comfortable maxi dress with a vibrant floral print. Features a smocked bodice and adjustable spaghetti straps.',
-    price: 89.00,
+    mrp: 99.00,
+    mop: 89.00,
+    dp: 69.00,
     category: 'Dresses',
     imageUrl: 'https://placehold.co/600x800.png',
     features: 'Floral print, Smocked bodice, Adjustable straps, Lightweight rayon fabric',
@@ -52,7 +58,9 @@ export const products: Product[] = [
     id: '4',
     name: 'Leather Ankle Boots',
     description: 'Chic and versatile ankle boots crafted from genuine leather. Features a comfortable block heel and side-zip closure.',
-    price: 199.00,
+    mrp: 229.00,
+    mop: 199.00,
+    dp: 159.00,
     category: 'Footwear',
     imageUrl: 'https://placehold.co/600x800.png',
     features: 'Genuine leather, Block heel, Side-zip closure, Almond toe',
@@ -65,7 +73,9 @@ export const products: Product[] = [
     id: '5',
     name: 'Minimalist Gold Hoops',
     description: 'Elegant and understated gold hoop earrings, perfect for everyday wear. Made from 14k gold-plated sterling silver.',
-    price: 75.00,
+    mrp: 85.00,
+    mop: 75.00,
+    // dp: 55.00, // Example: This product might not have a special dealer price
     category: 'Accessories',
     imageUrl: 'https://placehold.co/600x800.png',
     features: '14k Gold-plated, Sterling silver base, Lightweight, Hypoallergenic',
@@ -75,8 +85,8 @@ export const products: Product[] = [
   },
 ];
 
-if (!categories.find(c => c.id === 'Tops')) {
-  categories.push({id: 'tops', name: 'Tops'});
+if (!categories.find(c => c.id === 'tops')) {
+  categories.push({id: 'tops', name: 'Tops', imageUrl: 'https://placehold.co/300x200/E6E6FA/333333.png'});
 }
 
 
@@ -91,9 +101,9 @@ export async function getProducts(category?: string, sortBy?: string): Promise<P
 
   if (sortBy) {
     if (sortBy === 'price-asc') {
-      filteredProducts.sort((a, b) => a.price - b.price);
+      filteredProducts.sort((a, b) => a.mop - b.mop); // Sort by MOP
     } else if (sortBy === 'price-desc') {
-      filteredProducts.sort((a, b) => b.price - a.price);
+      filteredProducts.sort((a, b) => b.mop - a.mop); // Sort by MOP
     } else if (sortBy === 'name-asc') {
       filteredProducts.sort((a,b) => a.name.localeCompare(b.name));
     }
@@ -111,5 +121,9 @@ export async function getProductById(id: string): Promise<Product | undefined> {
 export async function getCategories(): Promise<Category[]> {
   // Simulate API delay
   await new Promise(resolve => setTimeout(resolve, 100));
-  return categories;
+  // Ensure all categories have a placeholder image if not specified
+  return categories.map(c => ({
+    ...c,
+    imageUrl: c.imageUrl || `https://placehold.co/300x200.png`
+  }));
 }

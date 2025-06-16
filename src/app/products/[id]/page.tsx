@@ -1,7 +1,6 @@
 
 import { getProductById, products as allProductsStatic } from "@/lib/data"; 
 import type { Product } from "@/lib/types";
-import Image from "next/image";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +11,7 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { ProductImageGallery } from "@/components/product/ProductImageGallery";
 import { ShareToWhatsAppButton } from "@/components/product/ShareToWhatsAppButton";
+import { ProductPricing } from "@/components/product/ProductPricing"; // Import the new pricing component
 
 interface ProductPageProps {
   params: { id: string };
@@ -66,7 +66,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
             
             <Badge variant="secondary" className="text-sm font-body">{product.category}</Badge>
             
-            <p className="text-3xl font-semibold text-foreground font-headline">₹{product.price.toFixed(2)}</p>
+            {/* Use ProductPricing component here */}
+            <ProductPricing product={product} />
             
             <div className="prose prose-lg dark:prose-invert max-w-none font-body text-foreground/90">
               <h2 className="font-headline text-xl">Description</h2>
@@ -102,4 +103,3 @@ export default async function ProductPage({ params }: ProductPageProps) {
     </div>
   );
 }
-
