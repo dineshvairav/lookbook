@@ -1,13 +1,11 @@
+
 import Link from "next/link";
 import { ThemeToggle } from "./ThemeToggle";
 import { AuthDialog } from "@/components/auth/AuthDialog";
 import { UserNav } from "@/components/auth/UserNav";
-import { useAuth } from "@/contexts/AuthContext"; // Client component context hook
+import { useAuth } from "@/contexts/AuthContext"; 
 import { Heart } from "lucide-react";
 
-// This component must be a client component if it uses useAuth directly for conditional rendering.
-// Alternatively, pass auth state as props from a parent client component or use a server-side session check.
-// For simplicity with the current setup, we'll make parts of it client-rendered.
 
 function HeaderClientContent() {
   const { user, isLoading } = useAuth();
@@ -34,12 +32,12 @@ export function Header() {
         <Link href="/" className="text-2xl font-bold font-headline text-primary hover:opacity-80 transition-opacity">
           Lookbook
         </Link>
-        <nav className="flex items-center space-x-4 lg:space-x-6">
+        <nav className="flex items-center space-x-2 sm:space-x-4 lg:space-x-6">
           <Link
-            href="/"
+            href="/shop"
             className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors font-body"
           >
-            Products
+            Shop
           </Link>
           <Link
             href="/wishlist"

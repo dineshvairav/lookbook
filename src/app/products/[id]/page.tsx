@@ -1,11 +1,12 @@
-import { getProductById, products as allProductsStatic } from "@/lib/data"; // Use static for generateStaticParams
+
+import { getProductById, products as allProductsStatic } from "@/lib/data"; 
 import type { Product } from "@/lib/types";
 import Image from "next/image";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Badge } from "@/components/ui/badge";
 import { AIDescriptionGenerator } from "@/components/product/AIDescriptionGenerator";
-import { WishlistButton } from "@/components/product/WishlistButton"; // Client component
+import { WishlistButton } from "@/components/product/WishlistButton"; 
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ChevronLeft, ShoppingBag } from "lucide-react";
@@ -15,9 +16,7 @@ interface ProductPageProps {
   params: { id: string };
 }
 
-// This function is needed for dynamic routes to be statically generated at build time.
 export async function generateStaticParams() {
-  // In a real app, fetch all product IDs from your data source
   const products = allProductsStatic; 
   return products.map((product) => ({
     id: product.id,
@@ -35,7 +34,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
         <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center">
           <h1 className="text-2xl font-semibold font-headline">Product not found</h1>
           <Button asChild variant="link" className="mt-4">
-            <Link href="/">Go back to products</Link>
+            <Link href="/shop">Go back to products</Link>
           </Button>
         </main>
         <Footer />
@@ -49,7 +48,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
       <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
           <Button variant="outline" asChild className="text-sm">
-            <Link href="/">
+            <Link href="/shop">
               <ChevronLeft className="mr-2 h-4 w-4" />
               Back to Products
             </Link>

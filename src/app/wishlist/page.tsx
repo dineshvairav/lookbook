@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Header } from "@/components/layout/Header";
@@ -25,7 +26,7 @@ export default function WishlistPage() {
             <HeartCrack className="mx-auto h-16 w-16 text-muted-foreground mb-4" />
             <p className="text-xl text-muted-foreground font-body mb-6">Your wishlist is empty.</p>
             <Button asChild>
-              <Link href="/">Discover Products</Link>
+              <Link href="/shop">Discover Products</Link>
             </Button>
           </div>
         )}
