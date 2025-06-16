@@ -32,7 +32,7 @@ export default function ShopPage() {
           imageUrl: c.imageUrl || `https://placehold.co/300x200.png` 
         })));
       } catch (error) {
-        console.error("Failed to fetch data:", error);
+        console.error("ShopPage: Failed to fetch initial products and categories:", error);
       }
       setIsLoading(false);
     }
@@ -45,8 +45,9 @@ export default function ShopPage() {
 
   const dealProducts = useMemo(() => {
     if (selectedCategoryId === "all") {
-      return allProducts; // Show all products as "deals" if 'All' is selected
+      return allProducts; // Show all products if 'All' is selected
     }
+    // Filter products based on the selected category ID
     return allProducts.filter(p => p.category.toLowerCase() === selectedCategoryId.toLowerCase());
   }, [allProducts, selectedCategoryId]);
 
@@ -123,3 +124,4 @@ export default function ShopPage() {
     </div>
   );
 }
+
