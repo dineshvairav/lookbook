@@ -65,13 +65,13 @@ export function OnboardingSlides({ onComplete, onSkip }: OnboardingSlidesProps) 
               objectFit="cover"
               data-ai-hint={slide.aiHint}
               className="transition-opacity duration-500 ease-in-out"
-              key={currentSlide} 
+              key={currentSlide}
             />
           </div>
           <h2 className="text-3xl font-bold font-headline text-primary mb-3">{slide.title}</h2>
           <p className="text-foreground/80 font-body mb-8 min-h-[60px]">{slide.description}</p>
         </div>
-        
+
         <div className="mt-auto">
           <div className="flex items-center justify-between w-full pt-6">
             {/* Back Button (Icon only) */}
@@ -102,28 +102,28 @@ export function OnboardingSlides({ onComplete, onSkip }: OnboardingSlidesProps) 
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={onComplete} 
+                onClick={onComplete}
                 aria-label="Skip to Authentication"
                 className="ml-2 text-muted-foreground hover:text-foreground" // Added margin and styling
               >
                 <ArrowRightToLine className="h-5 w-5" />
               </Button>
             </div>
-            
-            {/* Next Button (Icon only) / Get Started (Text Button) */}
+
+            {/* Next Button (Icon only) / Complete Icon Button */}
             <Button
               variant={currentSlide === slidesContent.length - 1 ? "default" : "ghost"}
-              size={currentSlide === slidesContent.length - 1 ? "default" : "icon"}
+              size="icon"
               onClick={handleNext}
               className={
-                currentSlide === slidesContent.length - 1 
-                ? "px-5 py-2 bg-primary hover:bg-primary/90 text-primary-foreground" // Adjusted padding for text button
-                : "text-muted-foreground hover:text-foreground"
+                currentSlide === slidesContent.length - 1
+                ? "" // Primary icon button styles are handled by variant and size
+                : "text-muted-foreground hover:text-foreground" // Ghost icon button styles
               }
-              aria-label={currentSlide === slidesContent.length - 1 ? "Get Started" : "Next slide"}
+              aria-label={currentSlide === slidesContent.length - 1 ? "Complete Onboarding" : "Next slide"}
             >
               {currentSlide === slidesContent.length - 1 ? (
-                'Get Started'
+                <Check className="h-6 w-6" />
               ) : (
                 <ChevronRight className="h-6 w-6" />
               )}
