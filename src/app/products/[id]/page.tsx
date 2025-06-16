@@ -9,8 +9,9 @@ import { AIDescriptionGenerator } from "@/components/product/AIDescriptionGenera
 import { WishlistButton } from "@/components/product/WishlistButton"; 
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ChevronLeft, ShoppingBag } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import { ProductImageGallery } from "@/components/product/ProductImageGallery";
+import { ShareToWhatsAppButton } from "@/components/product/ShareToWhatsAppButton";
 
 interface ProductPageProps {
   params: { id: string };
@@ -83,9 +84,11 @@ export default async function ProductPage({ params }: ProductPageProps) {
               </div>
             )}
             
-            <Button size="lg" className="w-full sm:w-auto">
-              <ShoppingBag className="mr-2 h-5 w-5" /> Add to Bag (Mock)
-            </Button>
+            <ShareToWhatsAppButton 
+              productName={product.name} 
+              productId={product.id} 
+              className="w-full sm:w-auto" 
+            />
 
             <AIDescriptionGenerator
               productName={product.name}
@@ -99,3 +102,4 @@ export default async function ProductPage({ params }: ProductPageProps) {
     </div>
   );
 }
+
