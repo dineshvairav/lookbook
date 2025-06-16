@@ -57,7 +57,7 @@ export function Footer() {
             <ul className="space-y-2 text-sm">
               <li><Link href="/shop" className="text-muted-foreground hover:text-primary transition-colors">Shop</Link></li>
               <li><Link href="/wishlist" className="text-muted-foreground hover:text-primary transition-colors">Wishlist</Link></li>
-              <li><Link href="/#about" className="text-muted-foreground hover:text-primary transition-colors">About Us (Placeholder)</Link></li>
+              <li><Link href="/about" className="text-muted-foreground hover:text-primary transition-colors">About Us</Link></li>
             </ul>
           </div>
 
@@ -65,8 +65,8 @@ export function Footer() {
           <div className="space-y-4">
             <h3 className="text-lg font-semibold font-headline text-primary">Legal</h3>
             <ul className="space-y-2 text-sm">
-              <li><Link href="/#privacy" className="text-muted-foreground hover:text-primary transition-colors">Privacy Policy (Placeholder)</Link></li>
-              <li><Link href="/#terms" className="text-muted-foreground hover:text-primary transition-colors">Terms of Service (Placeholder)</Link></li>
+              <li><Link href="/privacy" className="text-muted-foreground hover:text-primary transition-colors">Privacy Policy</Link></li>
+              <li><Link href="/terms" className="text-muted-foreground hover:text-primary transition-colors">Terms of Service</Link></li>
             </ul>
           </div>
         </div>
