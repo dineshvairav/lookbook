@@ -80,6 +80,15 @@ export default function LandingPage() {
       </div>
       
       <div className="relative z-10 space-y-8 max-w-2xl">
+        <div className="flex justify-center mb-4 animate-fade-in-down">
+          <Image
+            src="https://placehold.co/150x50.png" 
+            alt="Company Logo"
+            width={150}
+            height={50}
+            data-ai-hint="company logo" 
+          />
+        </div>
         <h1 className="text-6xl md:text-7xl font-bold font-headline text-primary animate-fade-in-down text-center">
           Lookbook
         </h1>
