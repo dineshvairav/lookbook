@@ -1,9 +1,80 @@
+
+import Link from 'next/link';
+import { Mail, Phone, MapPin } from 'lucide-react';
+
 export function Footer() {
+  const currentYear = new Date().getFullYear();
+  const address = "123 Style Avenue, Fashion City, FC 54321";
+  const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+
   return (
-    <footer className="border-t border-border/40 mt-auto">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center text-sm text-muted-foreground font-body">
-        <p>&copy; {new Date().getFullYear()} Lookbook App. All rights reserved.</p>
-        <p>Designed with elegance and sophistication.</p>
+    <footer className="border-t border-border/40 mt-auto bg-card text-card-foreground font-body">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+          {/* Contact Information */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold font-headline text-primary">Contact Us</h3>
+            <div className="flex items-start space-x-3">
+              <MapPin className="h-5 w-5 text-muted-foreground mt-1 shrink-0" />
+              <div>
+                <p className="text-sm text-muted-foreground">
+                  <a 
+                    href={googleMapsUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="hover:text-primary transition-colors"
+                  >
+                    {address}
+                  </a>
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start space-x-3">
+              <Mail className="h-5 w-5 text-muted-foreground mt-1 shrink-0" />
+              <div>
+                <p className="text-sm text-muted-foreground">
+                  <a href="mailto:hello@lookbook.com" className="hover:text-primary transition-colors">
+                    hello@lookbook.com
+                  </a>
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start space-x-3">
+              <Phone className="h-5 w-5 text-muted-foreground mt-1 shrink-0" />
+              <div>
+                <p className="text-sm text-muted-foreground">
+                  <a href="tel:+1234567890" className="hover:text-primary transition-colors">
+                    +1 (234) 567-890
+                  </a>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Links */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold font-headline text-primary">Quick Links</h3>
+            <ul className="space-y-2 text-sm">
+              <li><Link href="/shop" className="text-muted-foreground hover:text-primary transition-colors">Shop</Link></li>
+              <li><Link href="/wishlist" className="text-muted-foreground hover:text-primary transition-colors">Wishlist</Link></li>
+              <li><Link href="/#about" className="text-muted-foreground hover:text-primary transition-colors">About Us (Placeholder)</Link></li>
+            </ul>
+          </div>
+
+          {/* Legal */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold font-headline text-primary">Legal</h3>
+            <ul className="space-y-2 text-sm">
+              <li><Link href="/#privacy" className="text-muted-foreground hover:text-primary transition-colors">Privacy Policy (Placeholder)</Link></li>
+              <li><Link href="/#terms" className="text-muted-foreground hover:text-primary transition-colors">Terms of Service (Placeholder)</Link></li>
+            </ul>
+          </div>
+        </div>
+        
+        <div className="border-t border-border/40 pt-8 text-center text-sm text-muted-foreground">
+          <p>&copy; {currentYear} Lookbook App. All rights reserved.</p>
+          <p>Designed with elegance and sophistication.</p>
+        </div>
       </div>
     </footer>
   );
