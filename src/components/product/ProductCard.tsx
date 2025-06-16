@@ -34,7 +34,7 @@ export function ProductCard({ product }: ProductCardProps) {
           <CardDescription className="text-sm text-muted-foreground mb-2 font-body h-10 overflow-hidden text-ellipsis">
             {product.description}
           </CardDescription>
-          <p className="text-lg font-semibold text-primary font-headline">${product.price.toFixed(2)}</p>
+          <p className="text-lg font-semibold text-primary font-headline">₹{product.price.toFixed(2)}</p>
         </CardContent>
       </Link>
       <CardFooter className="p-4 pt-0">

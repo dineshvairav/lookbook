@@ -66,7 +66,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
             
             <Badge variant="secondary" className="text-sm font-body">{product.category}</Badge>
             
-            <p className="text-3xl font-semibold text-foreground font-headline">${product.price.toFixed(2)}</p>
+            <p className="text-3xl font-semibold text-foreground font-headline">₹{product.price.toFixed(2)}</p>
             
             <div className="prose prose-lg dark:prose-invert max-w-none font-body text-foreground/90">
               <h2 className="font-headline text-xl">Description</h2>
