@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, ArrowRightToLine, Check } from 'lucide-react';
@@ -32,8 +32,32 @@ const slidesContent = [
   },
 ];
 
+const AUTO_SCROLL_INTERVAL = 5000; // 5 seconds
+
 export function OnboardingSlides({ onComplete, onSkip }: OnboardingSlidesProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
+
+  useEffect(() => {
+    // Don't start a timer if we are on the last slide.
+    if (currentSlide === slidesContent.length - 1) {
+      return;
+    }
+
+    const intervalId = setInterval(() => {
+      setCurrentSlide(prevSlide => {
+        if (prevSlide < slidesContent.length - 1) {
+          return prevSlide + 1;
+        }
+        // Should not be reached if outer check works, but as a safeguard:
+        clearInterval(intervalId); 
+        return prevSlide; 
+      });
+    }, AUTO_SCROLL_INTERVAL);
+
+    // Cleanup function: clear the interval when the component unmounts
+    // or when currentSlide changes (which means this effect re-runs).
+    return () => clearInterval(intervalId);
+  }, [currentSlide]); // Re-run this effect if currentSlide changes.
 
   const handleNext = () => {
     if (currentSlide < slidesContent.length - 1) {
@@ -49,12 +73,14 @@ export function OnboardingSlides({ onComplete, onSkip }: OnboardingSlidesProps) 
     }
   };
 
+  const handleDotClick = (index: number) => {
+    setCurrentSlide(index);
+  };
+
   const slide = slidesContent[currentSlide];
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-accent/10 via-background to-primary/10 p-4 relative overflow-hidden">
-      {/* The old skip button that was absolutely positioned is removed from here */}
-
       <div className="bg-card p-6 sm:p-10 rounded-xl shadow-2xl w-full max-w-md text-center relative flex flex-col" style={{minHeight: '70vh'}}>
         <div className="flex-grow flex flex-col items-center justify-center">
           <div className="mb-6 w-full aspect-video relative rounded-lg overflow-hidden">
@@ -65,7 +91,8 @@ export function OnboardingSlides({ onComplete, onSkip }: OnboardingSlidesProps) 
               objectFit="cover"
               data-ai-hint={slide.aiHint}
               className="transition-opacity duration-500 ease-in-out"
-              key={currentSlide}
+              key={currentSlide} // Ensures image transition if src changes
+              priority={currentSlide === 0} // Prioritize first image
             />
           </div>
           <h2 className="text-3xl font-bold font-headline text-primary mb-3">{slide.title}</h2>
@@ -74,7 +101,6 @@ export function OnboardingSlides({ onComplete, onSkip }: OnboardingSlidesProps) 
 
         <div className="mt-auto">
           <div className="flex items-center justify-between w-full pt-6">
-            {/* Back Button (Icon only) */}
             <Button
               variant="ghost"
               size="icon"
@@ -86,39 +112,36 @@ export function OnboardingSlides({ onComplete, onSkip }: OnboardingSlidesProps) 
               <ChevronLeft className="h-6 w-6" />
             </Button>
 
-            {/* Pagination Dots & Inline Skip Icon */}
-            <div className="flex items-center space-x-1"> {/* Reduced space for tighter grouping */}
+            <div className="flex items-center space-x-1">
               {slidesContent.map((_, index) => (
                 <button
                   key={index}
-                  onClick={() => setCurrentSlide(index)}
+                  onClick={() => handleDotClick(index)}
                   aria-label={`Go to slide ${index + 1}`}
                   className={`h-3 rounded-full transition-all duration-300 ${
-                    currentSlide === index ? 'bg-primary w-5' : 'bg-muted w-3 hover:bg-muted-foreground/50' // Adjusted active dot width
+                    currentSlide === index ? 'bg-primary w-5' : 'bg-muted w-3 hover:bg-muted-foreground/50'
                   }`}
                 />
               ))}
-              {/* Inline Skip Button (replaces top-right one) - calls onComplete */}
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={onComplete}
+                onClick={onComplete} // Skip now directly calls onComplete
                 aria-label="Skip to Authentication"
-                className="ml-2 text-muted-foreground hover:text-foreground" // Added margin and styling
+                className="ml-2 text-muted-foreground hover:text-foreground"
               >
                 <ArrowRightToLine className="h-5 w-5" />
               </Button>
             </div>
 
-            {/* Next Button (Icon only) / Complete Icon Button */}
             <Button
               variant={currentSlide === slidesContent.length - 1 ? "default" : "ghost"}
               size="icon"
               onClick={handleNext}
               className={
                 currentSlide === slidesContent.length - 1
-                ? "" // Primary icon button styles are handled by variant and size
-                : "text-muted-foreground hover:text-foreground" // Ghost icon button styles
+                ? "bg-primary hover:bg-primary/90 text-primary-foreground" 
+                : "text-muted-foreground hover:text-foreground"
               }
               aria-label={currentSlide === slidesContent.length - 1 ? "Complete Onboarding" : "Next slide"}
             >
@@ -134,4 +157,3 @@ export function OnboardingSlides({ onComplete, onSkip }: OnboardingSlidesProps) 
     </div>
   );
 }
-
