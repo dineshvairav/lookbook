@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, User as UserIcon, ShieldCheck, Settings } from "lucide-react"; // Added Settings for Admin
+import { LogOut, User as UserIcon, ShieldCheck, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link"; 
 
@@ -41,7 +41,7 @@ export function UserNav() {
   const getInitials = (name?: string | null, email?: string | null) => {
     if (name) {
       const parts = name.split(' ');
-      if (parts.length > 1) {
+      if (parts.length > 1 && parts[0] && parts[parts.length -1]) {
         return (parts[0][0] + parts[parts.length -1][0]).toUpperCase();
       }
       return name.substring(0, 2).toUpperCase();
@@ -50,12 +50,15 @@ export function UserNav() {
     return 'U';
   }
 
+  const avatarSrc = user.avatarUrl || (user.email ? `https://avatar.vercel.sh/${user.email}.png` : undefined);
+
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-8 w-8">
-            <AvatarImage src={user.email ? `https://avatar.vercel.sh/${user.email}.png` : undefined} alt={user.name || user.email || "User"} />
+            <AvatarImage src={avatarSrc} alt={user.name || user.email || "User"} />
             <AvatarFallback>{getInitials(user.name, user.email)}</AvatarFallback>
           </Avatar>
         </Button>
@@ -75,9 +78,11 @@ export function UserNav() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem disabled> {/* Disabled as no profile page implemented */}
-            <UserIcon className="mr-2 h-4 w-4" />
-            <span>Profile</span>
+          <DropdownMenuItem asChild>
+            <Link href="/profile">
+              <UserIcon className="mr-2 h-4 w-4" />
+              <span>Profile</span>
+            </Link>
           </DropdownMenuItem>
           {user.isAdmin && (
             <DropdownMenuItem asChild disabled> 
