@@ -85,16 +85,14 @@ export function UserNav() {
             </Link>
           </DropdownMenuItem>
           {user.isAdmin && (
-            <DropdownMenuItem asChild disabled> 
+            <DropdownMenuItem disabled> 
               {/* 
                 This Link component will be enabled when /admin page exists.
                 For now, keeping it as a disabled menu item.
                 <Link href="/admin">
               */}
-              <>
-                <Settings className="mr-2 h-4 w-4" />
-                Admin Panel
-              </>
+              <Settings className="mr-2 h-4 w-4" />
+              Admin Panel
               {/* </Link> */}
             </DropdownMenuItem>
           )}
