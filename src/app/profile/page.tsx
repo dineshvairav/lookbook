@@ -26,13 +26,13 @@ const profileFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }).max(50, { message: "Name must be 50 characters or less."}),
   phoneNumber: z.string().optional().nullable(),
   address: z.string().optional().nullable(),
-  avatarFile: z.any().optional() // Changed from z.instanceof(FileList)
+  avatarFile: z.any().optional() 
     .refine(
       (files: FileList | undefined | null) => {
         if (!files || files.length === 0) return true; // Optional, or no file selected
-        return files[0].size <= 5 * 1024 * 1024; // Max 5MB
+        return files[0].size <= 1 * 1024 * 1024; // Max 1MB
       },
-      `Max file size is 5MB.`
+      `Max file size is 1MB.` // Updated message
     )
     .refine(
       (files: FileList | undefined | null) => {
@@ -114,10 +114,9 @@ export default function ProfilePage() {
       return;
     }
     setIsSaving(true);
-    let newAvatarUrl = user.avatarUrl; // Keep existing avatar URL by default
+    let newAvatarUrl = user.avatarUrl; 
 
     try {
-      // Handle avatar upload if a new file is selected
       if (data.avatarFile && data.avatarFile.length > 0) {
         const file = data.avatarFile[0];
         setIsUploadingAvatar(true);
@@ -132,7 +131,7 @@ export default function ProfilePage() {
           toast({ title: "Avatar Upload Failed", description: "Could not upload your avatar. Please try again.", variant: "destructive" });
           setIsUploadingAvatar(false);
           setIsSaving(false);
-          return; // Stop if avatar upload fails
+          return; 
         } finally {
           setIsUploadingAvatar(false);
         }
@@ -149,11 +148,10 @@ export default function ProfilePage() {
 
       await updateDoc(userDocRef, updateData);
       
-      // Update user in AuthContext
       updateUserInContext(updateData); 
       
       toast({ title: "Profile Updated", description: "Your profile has been successfully updated." });
-      reset({ ...data, avatarFile: undefined }); // Reset form, clear file input
+      reset({ ...data, avatarFile: undefined }); 
     } catch (error) {
       console.error("Error updating profile:", error);
       toast({ title: "Update Failed", description: "Could not update your profile. Please try again.", variant: "destructive" });
@@ -247,6 +245,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-
-
-    
