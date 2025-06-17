@@ -8,12 +8,13 @@ import { getFirestore } from "firebase/firestore";
 // Your web app's Firebase configuration
 // REPLACE THIS WITH YOUR ACTUAL FIREBASE CONFIG
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyCLxeB37BzolegJ8dXixOe1el19rkSDqLM",
+  authDomain: "lookbook-g7ohv.firebaseapp.com",
+  databaseURL: "https://lookbook-g7ohv-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "lookbook-g7ohv",
+  storageBucket: "lookbook-g7ohv.firebasestorage.app",
+  messagingSenderId: "799992658956",
+  appId: "1:799992658956:web:4a13724b58297395a28229"
 };
 
 // Initialize Firebase

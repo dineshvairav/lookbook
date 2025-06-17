@@ -42,7 +42,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             uid: firebaseUser.uid,
             email: firebaseUser.email,
             name: userData.name || firebaseUser.displayName || firebaseUser.email?.split('@')[0],
-            isDealer: userData.isDealer || false,
+            isDealer: userData.isDealer || false, // Read isDealer, default to false
           });
         } else {
           // This case should ideally be handled during signup
@@ -51,7 +51,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             uid: firebaseUser.uid,
             email: firebaseUser.email,
             name: firebaseUser.displayName || firebaseUser.email?.split('@')[0],
-            isDealer: false, // Default to false
+            isDealer: false, // Default to false for new or uninitialized users
           };
           await setDoc(userDocRef, { 
             email: newUser.email, 
