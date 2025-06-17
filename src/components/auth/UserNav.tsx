@@ -44,6 +44,7 @@ export function UserNav() {
       if (parts.length > 1 && parts[0] && parts[parts.length -1]) {
         return (parts[0][0] + parts[parts.length -1][0]).toUpperCase();
       }
+      if (parts[0] && parts[0].length >=2) return parts[0].substring(0, 2).toUpperCase();
       return name.substring(0, 2).toUpperCase();
     }
     if (email) return email.substring(0, 2).toUpperCase();
@@ -85,15 +86,11 @@ export function UserNav() {
             </Link>
           </DropdownMenuItem>
           {user.isAdmin && (
-            <DropdownMenuItem disabled> 
-              {/* 
-                This Link component will be enabled when /admin page exists.
-                For now, keeping it as a disabled menu item.
-                <Link href="/admin">
-              */}
-              <Settings className="mr-2 h-4 w-4" />
-              Admin Panel
-              {/* </Link> */}
+            <DropdownMenuItem asChild>
+              <Link href="/admin">
+                <Settings className="mr-2 h-4 w-4" />
+                Admin Panel
+              </Link>
             </DropdownMenuItem>
           )}
         </DropdownMenuGroup>
