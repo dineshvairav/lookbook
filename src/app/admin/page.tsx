@@ -6,8 +6,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
-import { Loader2, ShieldAlert, LayoutDashboard, UploadCloud, Send, FileText, Image as ImageIcon } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Loader2, ShieldAlert, LayoutDashboard, UploadCloud, Send } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -58,9 +58,9 @@ export default function AdminPage() {
   useEffect(() => {
     if (!authLoading) {
       if (!user) {
-        router.replace('/?authModal=true'); // Or your landing page
+        router.replace('/?authModal=true'); 
       } else if (!user.isAdmin) {
-        router.replace('/shop'); // Or a general "access denied" page
+        router.replace('/shop'); 
       }
     }
   }, [user, authLoading, router]);
@@ -71,49 +71,59 @@ export default function AdminPage() {
       return;
     }
     setIsUploadingSharedFile(true);
+    const fileToUpload = data.file[0];
+    
     try {
-      const fileToUpload = data.file[0];
-      // Sanitize phone number for use in path if necessary, though Firebase paths are quite flexible.
-      // For simplicity, using it directly. Ensure your validation covers typical formats.
       const sharedFileStoragePath = `userSharedFiles/${data.phoneNumber}/${fileToUpload.name}`;
       const fileRef = storageRef(storage, sharedFileStoragePath);
       
+      toast({ title: "Uploading File...", description: `Attempting to upload ${fileToUpload.name}.`, variant: "default" });
       await uploadBytes(fileRef, fileToUpload);
       const downloadURL = await getDownloadURL(fileRef);
+      toast({ title: "File Stored", description: "File successfully uploaded to storage. Saving metadata...", variant: "default" });
 
-      await addDoc(collection(db, "sharedFiles"), {
-        phoneNumber: data.phoneNumber,
-        originalFileName: fileToUpload.name,
-        storagePath: sharedFileStoragePath,
-        downloadURL: downloadURL,
-        fileType: fileToUpload.type,
-        uploadedAt: serverTimestamp(),
-        uploadedBy: user.uid,
-      });
+      try {
+        await addDoc(collection(db, "sharedFiles"), {
+          phoneNumber: data.phoneNumber,
+          originalFileName: fileToUpload.name,
+          storagePath: sharedFileStoragePath,
+          downloadURL: downloadURL,
+          fileType: fileToUpload.type,
+          uploadedAt: serverTimestamp(),
+          uploadedBy: user.uid,
+        });
+        toast({ title: "File Uploaded Successfully", description: `${fileToUpload.name} has been uploaded for ${data.phoneNumber}.` });
+        resetSharedFileForm();
+      } catch (firestoreError: any) {
+        console.error("Firestore error after successful upload:", firestoreError);
+        toast({ 
+          title: "Firestore Error", 
+          description: `File uploaded to storage, but failed to save metadata: ${firestoreError.message || firestoreError.code}. Check Firestore rules.`, 
+          variant: "destructive" 
+        });
+      }
 
-      toast({ title: "File Uploaded", description: `${fileToUpload.name} has been uploaded successfully for ${data.phoneNumber}.` });
-      resetSharedFileForm();
     } catch (error: any) {
-      console.error("Error uploading shared file:", error);
+      console.error("Error uploading shared file to Firebase Storage:", error);
       let errorMessage = "Could not upload file. Please try again.";
-      if (error.code) { // Firebase error codes
+      if (error.code) { 
          switch (error.code) {
               case 'storage/unauthorized':
-                errorMessage = "Permission denied by storage rules. Ensure admin has write access and CORS is configured correctly.";
+                errorMessage = `Storage permission denied (Code: ${error.code}). Ensure admin has write access via Storage rules and the rules allow the get() for isAdmin check.`;
                 break;
               case 'storage/object-not-found':
               case 'storage/bucket-not-found':
               case 'storage/project-not-found':
-                errorMessage = "Storage configuration error. Please check Firebase setup or bucket name.";
+                errorMessage = `Storage configuration error (Code: ${error.code}). Please check Firebase setup or bucket name.`;
                 break;
               case 'storage/quota-exceeded':
-                errorMessage = "Storage quota exceeded.";
+                errorMessage = `Storage quota exceeded (Code: ${error.code}).`;
                 break;
               case 'storage/canceled':
-                errorMessage = "Upload cancelled by the user.";
+                errorMessage = `Upload cancelled by the user (Code: ${error.code}).`;
                 break;
               case 'storage/unknown':
-                errorMessage = "An unknown storage error occurred. Check browser console for details.";
+                errorMessage = `An unknown storage error occurred (Code: ${error.code}). Check browser console for details.`;
                 break;
               default:
                 errorMessage = `Storage error: ${error.message || error.code}`;
@@ -169,7 +179,7 @@ export default function AdminPage() {
                 This is the central hub for all administrative tasks. More modules will be added here.
               </p>
               <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {/* Placeholder for future admin modules/links */}
+                
                 <div className="bg-secondary/30 p-4 rounded-lg border border-border hover:shadow-md transition-shadow">
                   <h3 className="font-headline text-lg text-accent">User Management</h3>
                   <p className="text-sm text-muted-foreground font-body">View, edit, and manage user accounts.</p>
@@ -239,3 +249,4 @@ export default function AdminPage() {
     </div>
   );
 }
+    
