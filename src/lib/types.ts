@@ -28,3 +28,14 @@ export interface User {
   address?: string | null;
   avatarUrl?: string | null; // For future use with actual avatar uploads
 }
+
+export interface SharedFile {
+  id: string; // Firestore document ID
+  phoneNumber: string;
+  originalFileName: string;
+  storagePath: string;
+  downloadURL: string;
+  fileType: string;
+  uploadedAt: any; // Firebase Timestamp
+  uploadedBy: string; // UID of admin
+}

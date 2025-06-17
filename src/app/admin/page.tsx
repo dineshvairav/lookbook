@@ -25,7 +25,7 @@ const ACCEPTED_FILE_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'imag
 
 const fileUploadSchema = z.object({
   phoneNumber: z.string().min(10, { message: "Phone number must be at least 10 digits." })
-    .regex(/^\+?[1-9]\d{1,14}$/, { message: "Invalid phone number format." }),
+    .regex(/^\+?[1-9]\d{1,14}$/, { message: "Invalid phone number format. Include country code e.g. +12223334444" }),
   file: z.any()
     .refine((files: FileList | undefined | null) => files && files.length > 0, "File is required.")
     .refine(
@@ -34,7 +34,7 @@ const fileUploadSchema = z.object({
     )
     .refine(
       (files: FileList | undefined | null) => files && files[0] && ACCEPTED_FILE_TYPES.includes(files[0].type),
-      "Only PDF and common image files are accepted."
+      "Only PDF and common image files (JPEG, PNG, GIF, WebP) are accepted."
     ),
 });
 
@@ -58,9 +58,9 @@ export default function AdminPage() {
   useEffect(() => {
     if (!authLoading) {
       if (!user) {
-        router.replace('/?authModal=true');
+        router.replace('/?authModal=true'); // Or your landing page
       } else if (!user.isAdmin) {
-        router.replace('/shop');
+        router.replace('/shop'); // Or a general "access denied" page
       }
     }
   }, [user, authLoading, router]);
@@ -73,6 +73,8 @@ export default function AdminPage() {
     setIsUploadingSharedFile(true);
     try {
       const fileToUpload = data.file[0];
+      // Sanitize phone number for use in path if necessary, though Firebase paths are quite flexible.
+      // For simplicity, using it directly. Ensure your validation covers typical formats.
       const sharedFileStoragePath = `userSharedFiles/${data.phoneNumber}/${fileToUpload.name}`;
       const fileRef = storageRef(storage, sharedFileStoragePath);
       
@@ -94,21 +96,27 @@ export default function AdminPage() {
     } catch (error: any) {
       console.error("Error uploading shared file:", error);
       let errorMessage = "Could not upload file. Please try again.";
-      if (error.code) {
+      if (error.code) { // Firebase error codes
          switch (error.code) {
               case 'storage/unauthorized':
-                errorMessage = "Permission denied by storage rules. Ensure admin has write access.";
+                errorMessage = "Permission denied by storage rules. Ensure admin has write access and CORS is configured correctly.";
                 break;
               case 'storage/object-not-found':
               case 'storage/bucket-not-found':
               case 'storage/project-not-found':
-                errorMessage = "Storage configuration error. Please check Firebase setup.";
+                errorMessage = "Storage configuration error. Please check Firebase setup or bucket name.";
                 break;
               case 'storage/quota-exceeded':
                 errorMessage = "Storage quota exceeded.";
                 break;
+              case 'storage/canceled':
+                errorMessage = "Upload cancelled by the user.";
+                break;
+              case 'storage/unknown':
+                errorMessage = "An unknown storage error occurred. Check browser console for details.";
+                break;
               default:
-                errorMessage = error.message || "An unknown storage error occurred.";
+                errorMessage = `Storage error: ${error.message || error.code}`;
             }
       } else if (error.message) {
         errorMessage = error.message;
@@ -186,12 +194,13 @@ export default function AdminPage() {
               </div>
               <CardDescription className="font-body text-muted-foreground pt-2">
                 Upload a PDF or image file for a user identified by their phone number.
+                This file will be accessible to them if they log in as a guest with that number.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmitSharedFile(onSharedFileUploadSubmit)} className="space-y-6">
                 <div className="space-y-2">
-                  <Label htmlFor="phoneNumber" className="font-body">User's Phone Number</Label>
+                  <Label htmlFor="phoneNumber" className="font-body">User's Phone Number (with country code)</Label>
                   <Input
                     id="phoneNumber"
                     type="tel"
@@ -230,5 +239,3 @@ export default function AdminPage() {
     </div>
   );
 }
-
-    
