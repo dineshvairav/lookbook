@@ -1,5 +1,20 @@
 import type {Config} from 'tailwindcss';
 
+const systemUiFontStack = [
+  '-apple-system',
+  'BlinkMacSystemFont',
+  '"Segoe UI"',
+  'Roboto',
+  '"Helvetica Neue"',
+  'Arial',
+  '"Noto Sans"',
+  'sans-serif',
+  '"Apple Color Emoji"',
+  '"Segoe UI Emoji"',
+  '"Segoe UI Symbol"',
+  '"Noto Color Emoji"',
+];
+
 export default {
   darkMode: ['class'],
   content: [
@@ -10,8 +25,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        body: ['Alegreya', 'serif'],
-        headline: ['Belleza', 'sans-serif'],
+        body: ['Inter', ...systemUiFontStack],
+        headline: ['Inter', ...systemUiFontStack], // Using Inter for headlines as well for consistency
         code: ['monospace'],
       },
       colors: {
