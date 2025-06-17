@@ -19,8 +19,8 @@ export interface Category {
 }
 
 export interface User {
-  id: string;
-  email: string;
-  name?: string;
-  isDealer?: boolean; // Flag to identify dealer users
+  uid: string; // Firebase Auth UID
+  email: string | null; // Firebase Auth email
+  name?: string | null; // Display name
+  isDealer?: boolean; // Flag to identify dealer users, fetched from Firestore
 }

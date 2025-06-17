@@ -7,78 +7,103 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { GuestLoginModal } from './GuestLoginModal';
+// GuestLoginModal might be removed or re-purposed if guest login isn't a Firebase direct feature
+// For now, let's comment it out, assuming focus on email/pass and potential social logins via Firebase
+// import { GuestLoginModal } from './GuestLoginModal'; 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, LogIn, Mail, KeyRound, User } from 'lucide-react';
+import { Loader2, LogIn, Mail, KeyRound, UserPlus } from 'lucide-react'; // Added UserPlus
 
 interface OnboardingAuthModalProps {
-  onLoginSuccess: () => void;
+  onLoginSuccess: () => void; // This implies successful Firebase auth
   onClose: () => void;
 }
 
 export function OnboardingAuthModal({ onLoginSuccess, onClose }: OnboardingAuthModalProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const { login, isLoading: authLoading } = useAuth();
+  const { login, signup, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
-  const [isGuestModalOpen, setIsGuestModalOpen] = useState(false);
+  // const [isGuestModalOpen, setIsGuestModalOpen] = useState(false); // Commented out
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeTab, setActiveTab] = useState("signup"); // Default to signup for onboarding
 
+  const currentLoading = authLoading || isSubmitting;
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) {
-      toast({ title: "Login Error", description: "Please enter an email.", variant: "destructive" });
+    if (!email || !password) {
+      toast({ title: "Login Error", description: "Please enter email and password.", variant: "destructive" });
       return;
     }
     setIsSubmitting(true);
     try {
-      await login(email); // Simplified login from AuthContext
-      toast({ title: "Login Successful", description: `Welcome, ${email.split('@')[0]}!` });
+      await login(email, password);
+      toast({ title: "Login Successful", description: `Welcome back!` });
       onLoginSuccess();
-    } catch (error) {
-      toast({ title: "Login Failed", description: "Could not log in. Please try again.", variant: "destructive" });
+    } catch (error: any) {
+      toast({ title: "Login Failed", description: error.message || "Could not log in. Please try again.", variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleEmailSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
+      toast({ title: "Signup Error", description: "Please enter email and password.", variant: "destructive" });
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await signup(email, password);
+      toast({ title: "Signup Successful", description: "Welcome! Your account has been created." });
+      onLoginSuccess();
+    } catch (error: any) {
+      toast({ title: "Signup Failed", description: error.message || "Could not create account. Please try again.", variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleGoogleLogin = async () => {
-    // Mock Google Login
+    // TODO: Implement Firebase Google Sign-In
+    // This would involve:
+    // 1. Configuring Google as a provider in Firebase console
+    // 2. Using `signInWithPopup` or `signInWithRedirect` from `firebase/auth`
+    // 3. Handling the `UserCredential` response, potentially creating/updating user doc in Firestore
     setIsSubmitting(true);
-    await new Promise(resolve => setTimeout(resolve, 700));
-    toast({ title: "Google Login (Mock)", description: "Successfully signed in with Google." });
-    onLoginSuccess();
+    await new Promise(resolve => setTimeout(resolve, 700)); // Mock delay
+    toast({ title: "Google Login (Not Implemented)", description: "Firebase Google Sign-In to be implemented.", variant: "default" });
+    // onLoginSuccess(); // Don't call this for mock
     setIsSubmitting(false);
   };
 
-  const handleGuestLoginSuccess = () => {
-    setIsGuestModalOpen(false);
-    onLoginSuccess();
-  };
+  // const handleGuestLoginSuccess = () => {
+  //   setIsGuestModalOpen(false);
+  //   onLoginSuccess();
+  // };
   
-  const currentLoading = authLoading || isSubmitting;
-
   return (
     <>
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="text-center">
           <CardTitle className="font-headline text-3xl">Join Lookbook</CardTitle>
-          <CardDescription className="font-body">Sign in or create an account to continue.</CardDescription>
+          <CardDescription className="font-body">Create an account or sign in to continue.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="email" className="w-full">
+          <Tabs defaultValue="signup" value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="email"><Mail className="mr-2 h-4 w-4 inline-block"/>Email</TabsTrigger>
-              <TabsTrigger value="social"><User className="mr-2 h-4 w-4 inline-block"/>Other</TabsTrigger>
+              <TabsTrigger value="signup"><UserPlus className="mr-2 h-4 w-4 inline-block"/>Sign Up</TabsTrigger>
+              <TabsTrigger value="login"><LogIn className="mr-2 h-4 w-4 inline-block"/>Login</TabsTrigger>
             </TabsList>
-            <TabsContent value="email">
-              <form onSubmit={handleEmailLogin} className="space-y-6">
+            
+            <TabsContent value="signup">
+              <form onSubmit={handleEmailSignup} className="space-y-6">
                 <div className="space-y-2">
-                  <Label htmlFor="onboarding-email" className="font-body flex items-center"><Mail className="mr-2 h-4 w-4 text-muted-foreground"/>Email</Label>
+                  <Label htmlFor="onboarding-signup-email" className="font-body flex items-center"><Mail className="mr-2 h-4 w-4 text-muted-foreground"/>Email</Label>
                   <Input
-                    id="onboarding-email"
+                    id="onboarding-signup-email"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -88,36 +113,81 @@ export function OnboardingAuthModal({ onLoginSuccess, onClose }: OnboardingAuthM
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="onboarding-password" className="font-body flex items-center"><KeyRound className="mr-2 h-4 w-4 text-muted-foreground"/>Password</Label>
+                  <Label htmlFor="onboarding-signup-password" className="font-body flex items-center"><KeyRound className="mr-2 h-4 w-4 text-muted-foreground"/>Password</Label>
                   <Input
-                    id="onboarding-password"
+                    id="onboarding-signup-password"
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter any password (mock)"
+                    placeholder="Choose a strong password"
+                    required
+                    disabled={currentLoading}
+                  />
+                </div>
+                <Button type="submit" disabled={currentLoading} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
+                  {currentLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
+                  {currentLoading ? "Creating Account..." : "Create Account"}
+                </Button>
+              </form>
+            </TabsContent>
+
+            <TabsContent value="login">
+              <form onSubmit={handleEmailLogin} className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="onboarding-login-email" className="font-body flex items-center"><Mail className="mr-2 h-4 w-4 text-muted-foreground"/>Email</Label>
+                  <Input
+                    id="onboarding-login-email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    required
+                    disabled={currentLoading}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="onboarding-login-password" className="font-body flex items-center"><KeyRound className="mr-2 h-4 w-4 text-muted-foreground"/>Password</Label>
+                  <Input
+                    id="onboarding-login-password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Your password"
+                    required
                     disabled={currentLoading}
                   />
                 </div>
                 <Button type="submit" disabled={currentLoading} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
                   {currentLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogIn className="mr-2 h-4 w-4" />}
-                  {currentLoading ? "Processing..." : "Login / Sign Up"}
+                  {currentLoading ? "Logging In..." : "Login"}
                 </Button>
               </form>
             </TabsContent>
-            <TabsContent value="social">
-              <div className="space-y-4">
-                <Button onClick={handleGoogleLogin} variant="outline" className="w-full" disabled={currentLoading}>
-                  {currentLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 
-                    <svg className="mr-2 h-4 w-4" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Google</title><path d="M12.24 10.285V14.4h6.806c-.275 1.765-2.056 5.174-6.806 5.174-4.095 0-7.439-3.386-7.439-7.574s3.345-7.574 7.439-7.574c2.33 0 3.891.989 4.785 1.85l3.254-3.138C18.189 1.186 15.479 0 12.24 0 5.48 0 0 5.48 0 12s5.48 12 12.24 12c7.27 0 11.99-4.916 11.99-11.986a10.94 10.94 0 00-.186-1.729H12.24z" fill="#4285F4"/></svg>
-                  }
-                  Sign in with Google (Mock)
-                </Button>
-                <Button onClick={() => setIsGuestModalOpen(true)} variant="secondary" className="w-full" disabled={currentLoading}>
-                  {currentLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <User className="mr-2 h-4 w-4" />}
-                  Continue as Guest (Mock)
-                </Button>
+
+            <div className="mt-6">
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-2 text-muted-foreground">
+                    Or continue with
+                  </span>
+                </div>
               </div>
-            </TabsContent>
+              <Button onClick={handleGoogleLogin} variant="outline" className="w-full mt-4" disabled={currentLoading}>
+                {currentLoading && activeTab === "social" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 
+                  <svg className="mr-2 h-4 w-4" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Google</title><path d="M12.24 10.285V14.4h6.806c-.275 1.765-2.056 5.174-6.806 5.174-4.095 0-7.439-3.386-7.439-7.574s3.345-7.574 7.439-7.574c2.33 0 3.891.989 4.785 1.85l3.254-3.138C18.189 1.186 15.479 0 12.24 0 5.48 0 0 5.48 0 12s5.48 12 12.24 12c7.27 0 11.99-4.916 11.99-11.986a10.94 10.94 0 00-.186-1.729H12.24z" fill="#4285F4"/></svg>
+                }
+                Sign in with Google
+              </Button>
+              {/* 
+              <Button onClick={() => setIsGuestModalOpen(true)} variant="secondary" className="w-full mt-2" disabled={currentLoading}>
+                {currentLoading && activeTab === "guest" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <User className="mr-2 h-4 w-4" />}
+                Continue as Guest
+              </Button> 
+              */}
+            </div>
           </Tabs>
         </CardContent>
         <CardFooter className="flex justify-center">
@@ -127,11 +197,13 @@ export function OnboardingAuthModal({ onLoginSuccess, onClose }: OnboardingAuthM
         </CardFooter>
       </Card>
 
+      {/* 
       <GuestLoginModal
         isOpen={isGuestModalOpen}
         onClose={() => setIsGuestModalOpen(false)}
         onGuestLoginSuccess={handleGuestLoginSuccess}
-      />
+      /> 
+      */}
     </>
   );
 }
