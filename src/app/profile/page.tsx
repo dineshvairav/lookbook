@@ -26,13 +26,21 @@ const profileFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }).max(50, { message: "Name must be 50 characters or less."}),
   phoneNumber: z.string().optional().nullable(),
   address: z.string().optional().nullable(),
-  avatarFile: z.instanceof(FileList).optional().refine(
-    (files) => !files || files.length === 0 || files[0].size <= 5 * 1024 * 1024, // Max 5MB
-    `Max file size is 5MB.`
-  ).refine(
-    (files) => !files || files.length === 0 || files[0].type.startsWith("image/"),
-    "Only image files are accepted."
-  ),
+  avatarFile: z.any().optional() // Changed from z.instanceof(FileList)
+    .refine(
+      (files: FileList | undefined | null) => {
+        if (!files || files.length === 0) return true; // Optional, or no file selected
+        return files[0].size <= 5 * 1024 * 1024; // Max 5MB
+      },
+      `Max file size is 5MB.`
+    )
+    .refine(
+      (files: FileList | undefined | null) => {
+        if (!files || files.length === 0) return true; // Optional, or no file selected
+        return files[0].type.startsWith("image/");
+      },
+      "Only image files are accepted."
+    ),
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
@@ -81,6 +89,8 @@ export default function ProfilePage() {
       setPreviewAvatar(user.avatarUrl);
     } else if (user?.email) {
       setPreviewAvatar(`https://avatar.vercel.sh/${user.email}.png`);
+    } else {
+      setPreviewAvatar(null); // Fallback if no avatar source
     }
   }, [avatarFileWatch, user]);
 
@@ -91,6 +101,7 @@ export default function ProfilePage() {
       if (parts.length > 1 && parts[0] && parts[parts.length -1]) {
         return (parts[0][0] + parts[parts.length -1][0]).toUpperCase();
       }
+      if (parts[0] && parts[0].length >=2) return parts[0].substring(0, 2).toUpperCase();
       return name.substring(0, 2).toUpperCase();
     }
     if (email) return email.substring(0, 2).toUpperCase();
@@ -195,7 +206,7 @@ export default function ProfilePage() {
                     className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
                     disabled={currentOverallLoading}
                   />
-                  {errors.avatarFile && <p className="text-sm text-destructive">{errors.avatarFile.message}</p>}
+                  {errors.avatarFile && <p className="text-sm text-destructive">{errors.avatarFile.message as string}</p>}
                 </div>
               </div>
 
@@ -236,3 +247,6 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+
+    
