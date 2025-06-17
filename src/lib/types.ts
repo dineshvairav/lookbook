@@ -23,4 +23,5 @@ export interface User {
   email: string | null; // Firebase Auth email
   name?: string | null; // Display name
   isDealer?: boolean; // Flag to identify dealer users, fetched from Firestore
+  isAdmin?: boolean; // Flag to identify admin users, fetched from Firestore
 }

@@ -13,9 +13,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, User as UserIcon, ShieldCheck } from "lucide-react"; // Added ShieldCheck for dealer
+import { LogOut, User as UserIcon, ShieldCheck, Settings } from "lucide-react"; // Added Settings for Admin
 import { useToast } from "@/hooks/use-toast";
-import Link from "next/link"; // For future admin link
+import Link from "next/link"; 
 
 export function UserNav() {
   const { user, logout, isLoading } = useAuth();
@@ -55,7 +55,6 @@ export function UserNav() {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-8 w-8">
-            {/* Using a generic avatar generation service, or you can use Firebase user.photoURL if available */}
             <AvatarImage src={user.email ? `https://avatar.vercel.sh/${user.email}.png` : undefined} alt={user.name || user.email || "User"} />
             <AvatarFallback>{getInitials(user.name, user.email)}</AvatarFallback>
           </Avatar>
@@ -67,6 +66,7 @@ export function UserNav() {
             <p className="text-sm font-medium leading-none font-headline flex items-center">
               {user.name || "User"}
               {user.isDealer && <ShieldCheck className="ml-2 h-4 w-4 text-green-500" title="Dealer Account" />}
+              {user.isAdmin && <Settings className="ml-2 h-4 w-4 text-blue-500" title="Admin Account" />}
             </p>
             <p className="text-xs leading-none text-muted-foreground font-body">
               {user.email}
@@ -79,15 +79,20 @@ export function UserNav() {
             <UserIcon className="mr-2 h-4 w-4" />
             <span>Profile</span>
           </DropdownMenuItem>
-          {/* Add Admin link here if user is admin - requires isAdmin flag */}
-          {/* {user.isAdmin && (
-            <DropdownMenuItem asChild>
-              <Link href="/admin">
+          {user.isAdmin && (
+            <DropdownMenuItem asChild disabled> 
+              {/* 
+                This Link component will be enabled when /admin page exists.
+                For now, keeping it as a disabled menu item.
+                <Link href="/admin">
+              */}
+              <>
                 <Settings className="mr-2 h-4 w-4" />
                 Admin Panel
-              </Link>
+              </>
+              {/* </Link> */}
             </DropdownMenuItem>
-          )} */}
+          )}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout}>

@@ -31,8 +31,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
       setIsLoading(true);
       if (firebaseUser) {
-        // User is signed in, see docs for a list of available properties
-        // https://firebase.google.com/docs/reference/js/firebase.User
         const userDocRef = doc(db, "users", firebaseUser.uid);
         const userDocSnap = await getDoc(userDocRef);
 
@@ -42,7 +40,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             uid: firebaseUser.uid,
             email: firebaseUser.email,
             name: userData.name || firebaseUser.displayName || firebaseUser.email?.split('@')[0],
-            isDealer: userData.isDealer || false, // Read isDealer, default to false
+            isDealer: userData.isDealer || false,
+            isAdmin: userData.isAdmin || false, // Read isAdmin, default to false
           });
         } else {
           // This case should ideally be handled during signup
@@ -51,12 +50,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             uid: firebaseUser.uid,
             email: firebaseUser.email,
             name: firebaseUser.displayName || firebaseUser.email?.split('@')[0],
-            isDealer: false, // Default to false for new or uninitialized users
+            isDealer: false, // Default to false
+            isAdmin: false, // Default to false for new or uninitialized users
           };
           await setDoc(userDocRef, { 
             email: newUser.email, 
             name: newUser.name, 
             isDealer: newUser.isDealer,
+            isAdmin: newUser.isAdmin,
             createdAt: serverTimestamp(),
           });
           setUser(newUser);
@@ -101,6 +102,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         email: firebaseUser.email,
         name: userName,
         isDealer: false, // Default for new signups
+        isAdmin: false, // Default for new signups
         createdAt: serverTimestamp(),
       });
       // onAuthStateChanged will handle setting the user state
