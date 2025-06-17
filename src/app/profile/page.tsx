@@ -14,18 +14,25 @@ import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, UserCircle, Mail, Phone, Home, Save } from 'lucide-react';
+import { Loader2, UserCircle, Mail, Phone, Home, Save, UploadCloud } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { db, storage } from '@/lib/firebase'; // Import storage
+import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import type { User } from '@/lib/types';
 
 const profileFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }).max(50, { message: "Name must be 50 characters or less."}),
   phoneNumber: z.string().optional().nullable(),
   address: z.string().optional().nullable(),
-  avatarFile: z.instanceof(FileList).optional() // Placeholder for file upload
+  avatarFile: z.instanceof(FileList).optional().refine(
+    (files) => !files || files.length === 0 || files[0].size <= 5 * 1024 * 1024, // Max 5MB
+    `Max file size is 5MB.`
+  ).refine(
+    (files) => !files || files.length === 0 || files[0].type.startsWith("image/"),
+    "Only image files are accepted."
+  ),
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
@@ -35,37 +42,48 @@ export default function ProfilePage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [previewAvatar, setPreviewAvatar] = useState<string | null>(null);
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<ProfileFormValues>({
+  const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
   });
 
+  const avatarFileWatch = watch("avatarFile");
+
   useEffect(() => {
     if (!authLoading && !user) {
-      router.replace('/?authModal=true'); // Or your login page
+      router.replace('/?authModal=true');
     }
     if (user) {
       reset({
         name: user.name || '',
         phoneNumber: user.phoneNumber || '',
         address: user.address || '',
+        avatarFile: undefined, // Important to reset file input
       });
       const avatarSrc = user.avatarUrl || (user.email ? `https://avatar.vercel.sh/${user.email}.png` : undefined);
       if (avatarSrc) setPreviewAvatar(avatarSrc);
     }
   }, [user, authLoading, router, reset]);
 
-  const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewAvatar(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+  useEffect(() => {
+    if (avatarFileWatch && avatarFileWatch.length > 0) {
+      const file = avatarFileWatch[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setPreviewAvatar(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+      }
+    } else if (user?.avatarUrl) {
+      setPreviewAvatar(user.avatarUrl);
+    } else if (user?.email) {
+      setPreviewAvatar(`https://avatar.vercel.sh/${user.email}.png`);
     }
-  };
+  }, [avatarFileWatch, user]);
+
 
   const getInitials = (name?: string | null, email?: string | null) => {
     if (name) {
@@ -85,22 +103,46 @@ export default function ProfilePage() {
       return;
     }
     setIsSaving(true);
+    let newAvatarUrl = user.avatarUrl; // Keep existing avatar URL by default
+
     try {
+      // Handle avatar upload if a new file is selected
+      if (data.avatarFile && data.avatarFile.length > 0) {
+        const file = data.avatarFile[0];
+        setIsUploadingAvatar(true);
+        try {
+          const avatarStoragePath = `avatars/${user.uid}/${file.name}`;
+          const fileRef = storageRef(storage, avatarStoragePath);
+          await uploadBytes(fileRef, file);
+          newAvatarUrl = await getDownloadURL(fileRef);
+          toast({ title: "Avatar Uploaded", description: "Your new avatar has been uploaded." });
+        } catch (uploadError) {
+          console.error("Error uploading avatar:", uploadError);
+          toast({ title: "Avatar Upload Failed", description: "Could not upload your avatar. Please try again.", variant: "destructive" });
+          setIsUploadingAvatar(false);
+          setIsSaving(false);
+          return; // Stop if avatar upload fails
+        } finally {
+          setIsUploadingAvatar(false);
+        }
+      }
+
       const userDocRef = doc(db, "users", user.uid);
       
       const updateData: Partial<User> = {
         name: data.name,
         phoneNumber: data.phoneNumber || null,
         address: data.address || null,
-        // avatarUrl handling will be added here when Firebase Storage is integrated
+        avatarUrl: newAvatarUrl,
       };
 
       await updateDoc(userDocRef, updateData);
-
+      
       // Update user in AuthContext
-      updateUserInContext(updateData);
+      updateUserInContext(updateData); 
       
       toast({ title: "Profile Updated", description: "Your profile has been successfully updated." });
+      reset({ ...data, avatarFile: undefined }); // Reset form, clear file input
     } catch (error) {
       console.error("Error updating profile:", error);
       toast({ title: "Update Failed", description: "Could not update your profile. Please try again.", variant: "destructive" });
@@ -120,6 +162,8 @@ export default function ProfilePage() {
       </div>
     );
   }
+  
+  const currentOverallLoading = isSaving || isUploadingAvatar;
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -128,7 +172,7 @@ export default function ProfilePage() {
         <Card className="max-w-2xl mx-auto shadow-xl">
           <CardHeader className="text-center">
             <CardTitle className="text-3xl font-headline text-primary">Your Profile</CardTitle>
-            <CardDescription className="font-body">Manage your personal information.</CardDescription>
+            <CardDescription className="font-body">Manage your personal information and avatar.</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
@@ -140,15 +184,16 @@ export default function ProfilePage() {
                   </AvatarFallback>
                 </Avatar>
                 <div className="grid w-full max-w-sm items-center gap-1.5">
-                  <Label htmlFor="avatarFile" className="font-body">Change Avatar (Upload not implemented)</Label>
+                  <Label htmlFor="avatarFile" className="font-body flex items-center">
+                    <UploadCloud className="mr-2 h-4 w-4 text-muted-foreground"/> Change Avatar
+                  </Label>
                   <Input 
                     id="avatarFile" 
                     type="file" 
                     accept="image/*"
                     {...register("avatarFile")}
-                    onChange={handleAvatarChange}
                     className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
-                    disabled // Disabled until upload logic is implemented
+                    disabled={currentOverallLoading}
                   />
                   {errors.avatarFile && <p className="text-sm text-destructive">{errors.avatarFile.message}</p>}
                 </div>
@@ -161,26 +206,26 @@ export default function ProfilePage() {
 
               <div className="space-y-2">
                 <Label htmlFor="name" className="font-body flex items-center"><UserCircle className="mr-2 h-4 w-4 text-muted-foreground"/>Name</Label>
-                <Input id="name" type="text" {...register("name")} placeholder="Your full name" />
+                <Input id="name" type="text" {...register("name")} placeholder="Your full name" disabled={currentOverallLoading} />
                 {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="phoneNumber" className="font-body flex items-center"><Phone className="mr-2 h-4 w-4 text-muted-foreground"/>Phone Number</Label>
-                <Input id="phoneNumber" type="tel" {...register("phoneNumber")} placeholder="e.g., (555) 123-4567"/>
+                <Input id="phoneNumber" type="tel" {...register("phoneNumber")} placeholder="e.g., (555) 123-4567" disabled={currentOverallLoading}/>
                 {errors.phoneNumber && <p className="text-sm text-destructive">{errors.phoneNumber.message}</p>}
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="address" className="font-body flex items-center"><Home className="mr-2 h-4 w-4 text-muted-foreground"/>Address</Label>
-                <Textarea id="address" {...register("address")} placeholder="123 Main St, Anytown, USA" rows={3}/>
+                <Textarea id="address" {...register("address")} placeholder="123 Main St, Anytown, USA" rows={3} disabled={currentOverallLoading}/>
                 {errors.address && <p className="text-sm text-destructive">{errors.address.message}</p>}
               </div>
               
               <CardFooter className="px-0 pt-6">
-                <Button type="submit" disabled={isSaving} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
-                  {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                  {isSaving ? "Saving..." : "Save Changes"}
+                <Button type="submit" disabled={currentOverallLoading} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
+                  {isSaving || isUploadingAvatar ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                  {isUploadingAvatar ? "Uploading Avatar..." : (isSaving ? "Saving..." : "Save Changes")}
                 </Button>
               </CardFooter>
             </form>
