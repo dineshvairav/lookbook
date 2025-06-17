@@ -32,7 +32,7 @@ const profileFormSchema = z.object({
         if (!files || files.length === 0) return true; // Optional, or no file selected
         return files[0].size <= 1 * 1024 * 1024; // Max 1MB
       },
-      `Max file size is 1MB.` // Updated message
+      `Max file size is 1MB.`
     )
     .refine(
       (files: FileList | undefined | null) => {
@@ -126,9 +126,39 @@ export default function ProfilePage() {
           await uploadBytes(fileRef, file);
           newAvatarUrl = await getDownloadURL(fileRef);
           toast({ title: "Avatar Uploaded", description: "Your new avatar has been uploaded." });
-        } catch (uploadError) {
+        } catch (uploadError: any) {
+          let errorMessage = "Could not upload your avatar. Please try again.";
+          if (uploadError && uploadError.code) {
+            switch (uploadError.code) {
+              case 'storage/unauthorized':
+                errorMessage = "Permission denied. Please check storage rules or ensure you are logged in.";
+                break;
+              case 'storage/object-not-found':
+                errorMessage = "File path not found. This is an unexpected server error.";
+                break;
+              case 'storage/bucket-not-found':
+                errorMessage = "Storage bucket not found. Please check Firebase configuration.";
+                break;
+              case 'storage/project-not-found':
+                errorMessage = "Firebase project not found. Please check Firebase configuration.";
+                break;
+              case 'storage/quota-exceeded':
+                errorMessage = "Storage quota exceeded. Please contact support.";
+                break;
+              case 'storage/canceled':
+                errorMessage = "Upload cancelled.";
+                break;
+              case 'storage/unknown':
+                errorMessage = "An unknown storage error occurred. Check console for details.";
+                break;
+              default:
+                errorMessage = uploadError.message || "An unknown error occurred during upload.";
+            }
+          } else if (uploadError && uploadError.message) {
+            errorMessage = uploadError.message;
+          }
           console.error("Error uploading avatar:", uploadError);
-          toast({ title: "Avatar Upload Failed", description: "Could not upload your avatar. Please try again.", variant: "destructive" });
+          toast({ title: "Avatar Upload Failed", description: errorMessage, variant: "destructive" });
           setIsUploadingAvatar(false);
           setIsSaving(false);
           return; 
@@ -143,7 +173,7 @@ export default function ProfilePage() {
         name: data.name,
         phoneNumber: data.phoneNumber || null,
         address: data.address || null,
-        avatarUrl: newAvatarUrl,
+        avatarUrl: newAvatarUrl, // This will be the old URL if no new file was uploaded, or new one if upload succeeded
       };
 
       await updateDoc(userDocRef, updateData);
@@ -194,7 +224,7 @@ export default function ProfilePage() {
                 </Avatar>
                 <div className="grid w-full max-w-sm items-center gap-1.5">
                   <Label htmlFor="avatarFile" className="font-body flex items-center">
-                    <UploadCloud className="mr-2 h-4 w-4 text-muted-foreground"/> Change Avatar
+                    <UploadCloud className="mr-2 h-4 w-4 text-muted-foreground"/> Change Avatar (Max 1MB)
                   </Label>
                   <Input 
                     id="avatarFile" 
@@ -245,3 +275,5 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+    
