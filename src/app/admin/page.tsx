@@ -70,6 +70,11 @@ export default function AdminPage() {
       toast({ title: "Unauthorized", description: "You do not have permission to perform this action.", variant: "destructive" });
       return;
     }
+
+    // Log the user's isAdmin status from AuthContext
+    console.log("Attempting upload. User from AuthContext:", user);
+    console.log("User isAdmin status from AuthContext:", user.isAdmin);
+
     setIsUploadingSharedFile(true);
     const fileToUpload = data.file[0];
     
@@ -109,7 +114,7 @@ export default function AdminPage() {
       if (error.code) { 
          switch (error.code) {
               case 'storage/unauthorized':
-                errorMessage = `Storage permission denied (Code: ${error.code}). Ensure admin has write access via Storage rules and the rules allow the get() for isAdmin check.`;
+                errorMessage = `Storage permission denied (Code: ${error.code}). Ensure admin has write access via Storage rules AND Firestore rules allow the 'get()' for isAdmin check on the 'users' collection. Also verify the 'isAdmin' flag in Firestore for UID: ${user.uid}.`;
                 break;
               case 'storage/object-not-found':
               case 'storage/bucket-not-found':
@@ -223,7 +228,7 @@ export default function AdminPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="file" className="font-body">File (PDF or Image, Max {MAX_FILE_SIZE_MB}MB)</Label>
+                  <Label htmlFor="file" className="font-body">File (PDF or Image, Max ${MAX_FILE_SIZE_MB}MB)</Label>
                   <Input
                     id="file"
                     type="file"
@@ -249,4 +254,6 @@ export default function AdminPage() {
     </div>
   );
 }
+    
+
     

@@ -13,7 +13,7 @@ const firebaseConfig = {
   authDomain: "lookbook-g7ohv.firebaseapp.com",
   databaseURL: "https://lookbook-g7ohv-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "lookbook-g7ohv",
-  storageBucket: "lookbook-g7ohv.appspot.com", // Ensure this is correct for your project
+  storageBucket: "lookbook-g7ohv.firebasestorage.app", // Ensure this is correct for your project
   messagingSenderId: "799992658956",
   appId: "1:799992658956:web:4a13724b58297395a28229"
 };
