@@ -12,16 +12,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
+// Removed Select imports as category will be a text input
+import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { db, storage } from '@/lib/firebase';
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { collection, addDoc, serverTimestamp, query, getDocs, orderBy, doc, setDoc } from 'firebase/firestore';
-import type { Product, Category as CategoryType } from '@/lib/types';
-import { categories as staticCategories } from '@/lib/data'; 
+import type { Product } from '@/lib/types';
 import Image from 'next/image';
 import {
   Table,
@@ -62,7 +61,7 @@ const productFormSchema = z.object({
   mrp: z.coerce.number().positive("MRP must be a positive number.").optional().nullable(),
   mop: z.coerce.number().positive("MOP must be a positive number."),
   dp: z.coerce.number().positive("DP must be a positive number.").optional().nullable(),
-  category: z.string().min(1, "Category is required."),
+  category: z.string().min(1, "Category is required.").min(2, "Category name must be at least 2 characters."),
   features: z.string().optional(),
   productImage: z.any()
     .refine((files: FileList | undefined | null) => files && files.length > 0, "Product image is required.")
@@ -87,10 +86,6 @@ export default function AdminPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
 
-  // Use staticCategories for the dropdown, ensuring 'all' is filtered out for selection.
-  const availableCategories: CategoryType[] = useMemo(() => staticCategories.filter(c => c.id !== 'all'), []);
-
-
   const {
     register: registerSharedFile,
     handleSubmit: handleSubmitSharedFile,
@@ -103,7 +98,7 @@ export default function AdminPage() {
   const {
     register: registerProduct,
     handleSubmit: handleSubmitProduct,
-    control: controlProduct,
+    // control: controlProduct, // No longer needed for category as it's a text input
     reset: resetProductForm,
     formState: { errors: productErrors }
   } = useForm<ProductFormValues>({
@@ -132,7 +127,7 @@ export default function AdminPage() {
     if (user && user.isAdmin) {
       fetchProducts();
     }
-  }, [user]); // Removed toast dependency
+  }, [user, toast]); 
 
 
   useEffect(() => {
@@ -150,7 +145,7 @@ export default function AdminPage() {
       toast({ title: "Unauthorized", description: "You do not have permission to perform this action.", variant: "destructive" });
       return;
     }
-    console.log("Attempting upload. User from AuthContext:", user);
+    console.log("Attempting shared file upload. User from AuthContext:", user);
     console.log("User isAdmin status from AuthContext:", user.isAdmin);
 
     setIsUploadingSharedFile(true);
@@ -160,11 +155,9 @@ export default function AdminPage() {
       const sharedFileStoragePath = `userSharedFiles/${data.phoneNumber}/${fileToUpload.name}`;
       const fileRef = storageRef(storage, sharedFileStoragePath);
 
-      toast({ title: "Uploading File...", description: `Attempting to upload ${fileToUpload.name}.`, variant: "default" });
       await uploadBytes(fileRef, fileToUpload);
       const downloadURL = await getDownloadURL(fileRef);
-      toast({ title: "File Stored", description: "File successfully uploaded to storage. Saving metadata...", variant: "default" });
-
+      
       await addDoc(collection(db, "sharedFiles"), {
         phoneNumber: data.phoneNumber,
         originalFileName: fileToUpload.name,
@@ -181,7 +174,7 @@ export default function AdminPage() {
       console.error("Error uploading shared file:", error);
       let errorMessage = "Could not upload file. Please try again.";
       if (error.code) {
-        switch (error.code) {
+         switch (error.code) {
           case 'storage/unauthorized':
             errorMessage = `Storage permission denied (Code: ${error.code}). Ensure admin has write access via Storage rules AND Firestore rules allow the 'get()' for isAdmin check on the 'users' collection. Also verify the 'isAdmin' flag in Firestore for UID: ${user?.uid}.`;
             break;
@@ -191,7 +184,7 @@ export default function AdminPage() {
             errorMessage = `Storage configuration error (Code: ${error.code}). Please check Firebase setup or bucket name.`;
             break;
           case 'firestore/permission-denied':
-            errorMessage = `Firestore permission denied (Code: ${error.code}). Could not save file metadata. Check Firestore rules for 'sharedFiles' collection.`;
+             errorMessage = `Firestore permission denied (Code: ${error.code}). Could not save file metadata. Check Firestore rules for 'sharedFiles' collection.`;
             break;
           default:
             errorMessage = `Error: ${error.message || error.code}`;
@@ -226,7 +219,7 @@ export default function AdminPage() {
         mrp: data.mrp || undefined,
         mop: data.mop,
         dp: data.dp || undefined,
-        category: data.category, 
+        category: data.category.trim(), // Trim whitespace from category name
         features: data.features || '',
         imageUrl: imageUrl,
         images: [imageUrl], 
@@ -300,7 +293,6 @@ export default function AdminPage() {
                 Welcome, {user.name || user.email}. Manage your application content and settings here.
               </CardDescription>
             </CardHeader>
-            {/* No CardContent here for the main dashboard card to remove placeholder sections */}
           </Card>
 
           <Card className="shadow-xl">
@@ -325,23 +317,11 @@ export default function AdminPage() {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="productCategory" className="font-body">Category</Label>
-                       <Controller
-                        name="category"
-                        control={controlProduct}
-                        render={({ field }) => (
-                          <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmittingProduct}>
-                            <SelectTrigger id="productCategory">
-                              <SelectValue placeholder="Select a category" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {availableCategories.map((cat) => (
-                                <SelectItem key={cat.id} value={cat.name}> {/* Use cat.name as value */}
-                                  {cat.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        )}
+                       <Input 
+                        id="productCategory" 
+                        {...registerProduct("category")} 
+                        placeholder="e.g., Outerwear, Dresses, Accessories" 
+                        disabled={isSubmittingProduct} 
                       />
                       {productErrors.category && <p className="text-sm text-destructive">{productErrors.category.message}</p>}
                     </div>
@@ -507,3 +487,4 @@ export default function AdminPage() {
     </div>
   );
 }
+
