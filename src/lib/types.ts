@@ -44,6 +44,6 @@ export interface SharedFile {
   storagePath: string;
   downloadURL: string;
   fileType: string;
-  uploadedAt: any; // Firebase Timestamp
+  uploadedAt: any; // Firebase Timestamp // Allow any for display purposes, actual type is Timestamp
   uploadedBy: string; // UID of admin
 }

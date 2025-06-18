@@ -205,8 +205,8 @@ export default function AdminPage() {
       toast({ title: "Unauthorized", description: "You must be logged in.", variant: "destructive" });
       return;
     }
-    // Enhanced logging
-    console.log("Shared File Upload: Attempting as user:", user.uid, "isAdmin status (from AuthContext):", user.isAdmin);
+    
+    console.log("Shared File Upload: Attempting as user:", user.uid, " isAdmin status (from AuthContext):", user.isAdmin);
 
     if (!user.isAdmin) {
       toast({ title: "Unauthorized", description: "You do not have permission to perform this action.", variant: "destructive" });
@@ -268,8 +268,8 @@ export default function AdminPage() {
       toast({ title: "Unauthorized", description: "You must be logged in.", variant: "destructive" });
       return;
     }
-    // Enhanced logging
-    console.log("Product Submit: Attempting as user:", user.uid, "isAdmin status (from AuthContext):", user.isAdmin);
+    
+    console.log("Product Submit: Attempting as user:", user.uid, " isAdmin status (from AuthContext):", user.isAdmin);
     
     if (!user.isAdmin) {
       toast({ title: "Unauthorized", description: "You do not have permission to add products.", variant: "destructive" });
@@ -335,8 +335,8 @@ export default function AdminPage() {
       toast({ title: "Unauthorized", description: "You must be logged in.", variant: "destructive" });
       return;
     }
-    // Enhanced logging
-    console.log("Category Submit: Attempting as user:", user.uid, "isAdmin status (from AuthContext):", user.isAdmin);
+    
+    console.log("Category Submit: Attempting as user:", user.uid, " isAdmin status (from AuthContext):", user.isAdmin);
 
     if (!user.isAdmin) {
       toast({ title: "Unauthorized", description: "You do not have permission to manage categories.", variant: "destructive" });
@@ -393,7 +393,7 @@ export default function AdminPage() {
   };
 
 
-  if (authLoading || !user || (user && !user.isAdmin && !authLoading)) { // Added !authLoading here to prevent premature redirect
+  if (authLoading || !user || (user && !user.isAdmin && !authLoading)) { 
     return (
       <div className="flex flex-col min-h-screen">
         <Header />
