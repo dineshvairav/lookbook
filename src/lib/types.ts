@@ -8,7 +8,7 @@ export interface Product {
   mop: number; // Market Operating Price (formerly price)
   mrp?: number; // Maximum Retail Price
   dp?: number; // Dealer Price
-  category: string;
+  category: string; // Stores the category name
   imageUrl: string;
   features?: string; // Comma-separated or structured string
   images?: string[]; // Array of image URLs for gallery
@@ -18,9 +18,12 @@ export interface Product {
 }
 
 export interface Category {
-  id: string;
+  id: string; // Firestore document ID
   name: string;
-  imageUrl?: string; // Optional: For category cards
+  description?: string; // Optional description for the category
+  imageUrl?: string; // Optional: For category cards/display
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
 }
 
 export interface User {
