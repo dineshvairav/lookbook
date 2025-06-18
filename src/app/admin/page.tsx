@@ -21,7 +21,7 @@ import { db, storage } from '@/lib/firebase';
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { collection, addDoc, serverTimestamp, query, getDocs, orderBy, doc, setDoc } from 'firebase/firestore';
 import type { Product, Category as CategoryType } from '@/lib/types';
-import { categories as staticCategories } from '@/lib/data'; // For category dropdown
+import { categories as staticCategories } from '@/lib/data'; 
 import Image from 'next/image';
 import {
   Table,
@@ -87,6 +87,7 @@ export default function AdminPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
 
+  // Use staticCategories for the dropdown, ensuring 'all' is filtered out for selection.
   const availableCategories: CategoryType[] = useMemo(() => staticCategories.filter(c => c.id !== 'all'), []);
 
 
@@ -131,7 +132,7 @@ export default function AdminPage() {
     if (user && user.isAdmin) {
       fetchProducts();
     }
-  }, [user]);
+  }, [user]); // Removed toast dependency
 
 
   useEffect(() => {
@@ -182,7 +183,7 @@ export default function AdminPage() {
       if (error.code) {
         switch (error.code) {
           case 'storage/unauthorized':
-            errorMessage = `Storage permission denied (Code: ${error.code}). Ensure admin has write access via Storage rules AND Firestore rules allow the 'get()' for isAdmin check on the 'users' collection. Also verify the 'isAdmin' flag in Firestore for UID: ${user.uid}.`;
+            errorMessage = `Storage permission denied (Code: ${error.code}). Ensure admin has write access via Storage rules AND Firestore rules allow the 'get()' for isAdmin check on the 'users' collection. Also verify the 'isAdmin' flag in Firestore for UID: ${user?.uid}.`;
             break;
           case 'storage/object-not-found':
           case 'storage/bucket-not-found':
@@ -211,27 +212,25 @@ export default function AdminPage() {
     }
     setIsSubmittingProduct(true);
     const imageFile = data.productImage[0];
-    const newProductId = doc(collection(db, "products")).id; // Generate a new product ID for storage path
+    const newProductId = doc(collection(db, "products")).id; 
 
     try {
-      // 1. Upload image to Firebase Storage
       const imagePath = `product-images/${newProductId}/${imageFile.name}`;
       const imageFileRef = storageRef(storage, imagePath);
       await uploadBytes(imageFileRef, imageFile);
       const imageUrl = await getDownloadURL(imageFileRef);
 
-      // 2. Create product document in Firestore
       const productData: Omit<Product, 'id'> & { createdAt: any, updatedAt: any } = {
         name: data.name,
         description: data.description,
         mrp: data.mrp || undefined,
         mop: data.mop,
         dp: data.dp || undefined,
-        category: data.category, // This is category name, not ID from staticCategories.
+        category: data.category, 
         features: data.features || '',
         imageUrl: imageUrl,
-        images: [imageUrl], // For now, main image is the only one in gallery
-        slug: data.name.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, ''), // Basic slug
+        images: [imageUrl], 
+        slug: data.name.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, ''),
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       };
@@ -240,7 +239,7 @@ export default function AdminPage() {
 
       toast({ title: "Product Added", description: `${data.name} has been successfully added to the catalog.` });
       resetProductForm();
-      fetchProducts(); // Refresh product list
+      fetchProducts(); 
 
     } catch (error: any) {
       console.error("Error adding product:", error);
@@ -301,10 +300,9 @@ export default function AdminPage() {
                 Welcome, {user.name || user.email}. Manage your application content and settings here.
               </CardDescription>
             </CardHeader>
-            {/* Placeholder content removed, product catalog will be a separate card */}
+            {/* No CardContent here for the main dashboard card to remove placeholder sections */}
           </Card>
 
-          {/* Product Catalog Management Card */}
           <Card className="shadow-xl">
             <CardHeader>
               <div className="flex items-center space-x-3">
@@ -316,7 +314,6 @@ export default function AdminPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-8">
-              {/* Add New Product Form */}
               <section>
                 <h3 className="text-xl font-semibold font-headline text-accent mb-4">Add New Product</h3>
                 <form onSubmit={handleSubmitProduct(onProductSubmit)} className="space-y-6 p-4 border rounded-lg bg-card">
@@ -338,7 +335,7 @@ export default function AdminPage() {
                             </SelectTrigger>
                             <SelectContent>
                               {availableCategories.map((cat) => (
-                                <SelectItem key={cat.id} value={cat.name}>
+                                <SelectItem key={cat.id} value={cat.name}> {/* Use cat.name as value */}
                                   {cat.name}
                                 </SelectItem>
                               ))}
@@ -400,7 +397,6 @@ export default function AdminPage() {
                 </form>
               </section>
 
-              {/* List Products Section */}
               <section>
                 <h3 className="text-xl font-semibold font-headline text-accent mb-4 flex items-center">
                   <ListOrdered className="mr-2 h-5 w-5" /> Existing Products
@@ -459,7 +455,6 @@ export default function AdminPage() {
             </CardContent>
           </Card>
 
-          {/* Shared File Upload Card (existing) */}
           <Card className="shadow-xl">
             <CardHeader>
               <div className="flex items-center space-x-3">

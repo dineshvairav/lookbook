@@ -1,5 +1,5 @@
 
-import { getProductById, products as allProductsStatic } from "@/lib/data"; 
+import { getProductById, fetchProductsFromFirestore } from "@/lib/data"; 
 import type { Product } from "@/lib/types";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
@@ -11,14 +11,15 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { ProductImageGallery } from "@/components/product/ProductImageGallery";
 import { ShareToWhatsAppButton } from "@/components/product/ShareToWhatsAppButton";
-import { ProductPricing } from "@/components/product/ProductPricing"; // Import the new pricing component
+import { ProductPricing } from "@/components/product/ProductPricing";
 
 interface ProductPageProps {
   params: { id: string };
 }
 
 export async function generateStaticParams() {
-  const products = allProductsStatic; 
+  // Fetch products from Firestore to generate static params
+  const products = await fetchProductsFromFirestore(); 
   return products.map((product) => ({
     id: product.id,
   }));
@@ -26,6 +27,7 @@ export async function generateStaticParams() {
 
 
 export default async function ProductPage({ params }: ProductPageProps) {
+  // Fetch product from Firestore using the updated getProductById
   const product = await getProductById(params.id);
 
   if (!product) {
@@ -34,6 +36,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
         <Header />
         <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center">
           <h1 className="text-2xl font-semibold font-headline">Product not found</h1>
+          <p className="text-muted-foreground font-body mt-2">The product you are looking for might have been removed or does not exist.</p>
           <Button asChild variant="link" className="mt-4">
             <Link href="/shop">Go back to products</Link>
           </Button>
@@ -66,7 +69,6 @@ export default async function ProductPage({ params }: ProductPageProps) {
             
             <Badge variant="secondary" className="text-sm font-body">{product.category}</Badge>
             
-            {/* Use ProductPricing component here */}
             <ProductPricing product={product} />
             
             <div className="prose prose-lg dark:prose-invert max-w-none font-body text-foreground/90">
@@ -94,7 +96,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
             <AIDescriptionGenerator
               productName={product.name}
               currentDescription={product.description}
-              features={product.features}
+              features={product.features || ""}
             />
           </div>
         </div>
