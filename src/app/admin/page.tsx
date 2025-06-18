@@ -68,7 +68,7 @@ const productFormSchema = z.object({
   mrp: z.coerce.number().positive("MRP must be a positive number.").optional().nullable(),
   mop: z.coerce.number().positive("MOP must be a positive number."),
   dp: z.coerce.number().positive("DP must be a positive number.").optional().nullable(),
-  category: z.string().min(1, "Category is required."), // Will store category name
+  category: z.string().min(1, "Category is required."),
   features: z.string().optional(),
   productImage: z.any()
     .refine((files: FileList | undefined | null) => files && files.length > 0, "Product image is required.")
@@ -130,7 +130,7 @@ export default function AdminPage() {
     register: registerProduct,
     handleSubmit: handleSubmitProduct,
     reset: resetProductForm,
-    setValue: setProductFormValue, // For setting category select value
+    setValue: setProductFormValue,
     formState: { errors: productErrors }
   } = useForm<ProductFormValues>({
     resolver: zodResolver(productFormSchema),
@@ -201,13 +201,18 @@ export default function AdminPage() {
   }, [user, authLoading, router]);
 
   const onSharedFileUploadSubmit: SubmitHandler<SharedFileUploadFormValues> = async (data) => {
-    if (!user || !user.isAdmin) {
+    if (!user) {
+      toast({ title: "Unauthorized", description: "You must be logged in.", variant: "destructive" });
+      return;
+    }
+    // Enhanced logging
+    console.log("Shared File Upload: Attempting as user:", user.uid, "isAdmin status (from AuthContext):", user.isAdmin);
+
+    if (!user.isAdmin) {
       toast({ title: "Unauthorized", description: "You do not have permission to perform this action.", variant: "destructive" });
       return;
     }
-    console.log("Attempting shared file upload. User from AuthContext:", user);
-    console.log("User isAdmin status from AuthContext:", user.isAdmin);
-
+    
     setIsUploadingSharedFile(true);
     const fileToUpload = data.file[0];
 
@@ -259,13 +264,18 @@ export default function AdminPage() {
   };
 
   const onProductSubmit: SubmitHandler<ProductFormValues> = async (data) => {
-    if (!user || !user.isAdmin) {
+    if (!user) {
+      toast({ title: "Unauthorized", description: "You must be logged in.", variant: "destructive" });
+      return;
+    }
+    // Enhanced logging
+    console.log("Product Submit: Attempting as user:", user.uid, "isAdmin status (from AuthContext):", user.isAdmin);
+    
+    if (!user.isAdmin) {
       toast({ title: "Unauthorized", description: "You do not have permission to add products.", variant: "destructive" });
       return;
     }
-    console.log("Attempting product addition. User from AuthContext:", user);
-    console.log("User isAdmin status from AuthContext:", user.isAdmin);
-
+    
     setIsSubmittingProduct(true);
     const imageFile = data.productImage[0];
     const newProductId = doc(collection(db, "products")).id;
@@ -282,7 +292,7 @@ export default function AdminPage() {
         mrp: data.mrp || undefined,
         mop: data.mop,
         dp: data.dp || undefined,
-        category: data.category, // Stores category name
+        category: data.category,
         features: data.features || '',
         imageUrl: imageUrl,
         images: [imageUrl],
@@ -297,8 +307,7 @@ export default function AdminPage() {
       resetProductForm();
       fetchProducts();
 
-    } catch (error: any)
-     {
+    } catch (error: any) {
       console.error("Error adding product:", error);
       let errorMessage = "Could not add product. Please try again.";
       if (error.code) {
@@ -322,7 +331,14 @@ export default function AdminPage() {
   };
 
   const onCategorySubmit: SubmitHandler<CategoryFormValues> = async (data) => {
-    if (!user || !user.isAdmin) {
+    if (!user) {
+      toast({ title: "Unauthorized", description: "You must be logged in.", variant: "destructive" });
+      return;
+    }
+    // Enhanced logging
+    console.log("Category Submit: Attempting as user:", user.uid, "isAdmin status (from AuthContext):", user.isAdmin);
+
+    if (!user.isAdmin) {
       toast({ title: "Unauthorized", description: "You do not have permission to manage categories.", variant: "destructive" });
       return;
     }
@@ -377,7 +393,7 @@ export default function AdminPage() {
   };
 
 
-  if (authLoading || !user || (user && !user.isAdmin)) {
+  if (authLoading || !user || (user && !user.isAdmin && !authLoading)) { // Added !authLoading here to prevent premature redirect
     return (
       <div className="flex flex-col min-h-screen">
         <Header />
@@ -416,7 +432,6 @@ export default function AdminPage() {
             </CardHeader>
           </Card>
 
-          {/* Category Management Card */}
           <Card className="shadow-xl">
             <CardHeader>
               <div className="flex items-center space-x-3">
@@ -549,7 +564,6 @@ export default function AdminPage() {
                        <Select
                         onValueChange={(value) => setProductFormValue("category", value)}
                         disabled={isSubmittingProduct || isLoadingCategories}
-                        // value={watchProduct("category")} // If you need to control value
                       >
                         <SelectTrigger id="productCategory">
                           <SelectValue placeholder="Select a category" />
