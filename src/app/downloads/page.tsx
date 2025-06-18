@@ -6,14 +6,14 @@ import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
-import type { SharedFile } from '@/lib/types';
+import type { SharedFile } from '@/lib/types'; // Correctly import SharedFile
 import { Loader2, FileText, Download, AlertCircle, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
 
 export default function DownloadsPage() {
-  const [files, setFiles] = useState<SharedFile[]>([]);
+  const [files, setFiles] = useState<SharedFile[]>([]); // Use SharedFile[]
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [phoneNumber, setPhoneNumber] = useState<string | null>(null);
@@ -36,11 +36,11 @@ export default function DownloadsPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const filesCollectionRef = collection(db, "sharedFiles");
+      const filesCollectionRef = collection(db, "sharedFiles"); // Corrected collection name
       const q = query(filesCollectionRef, where("phoneNumber", "==", phone));
       const querySnapshot = await getDocs(q);
       
-      const fetchedFiles: SharedFile[] = [];
+      const fetchedFiles: SharedFile[] = []; // Use SharedFile[]
       querySnapshot.forEach((doc) => {
         const data = doc.data();
         // Ensure uploadedAt is properly converted if it's a Firestore Timestamp
@@ -55,7 +55,7 @@ export default function DownloadsPage() {
           id: doc.id,
           ...data,
           uploadedAt: uploadedAtDisplay, // Store as display string
-        } as SharedFile);
+        } as SharedFile); // Correct type assertion
       });
       setFiles(fetchedFiles.sort((a,b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime())); // Sort by date desc
     } catch (e: any) {
