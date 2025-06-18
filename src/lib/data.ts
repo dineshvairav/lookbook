@@ -1,4 +1,7 @@
+
 import type { Product, Category } from './types';
+import { db } from '@/lib/firebase'; // Import Firestore db instance
+import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 
 export const categories: Category[] = [
   { id: 'all', name: 'All', imageUrl: 'https://placehold.co/300x200/A9A9A9/FFFFFF.png' },
@@ -8,7 +11,7 @@ export const categories: Category[] = [
   { id: 'footwear', name: 'Footwear', imageUrl: 'https://placehold.co/300x200/8FBC8F/FFFFFF.png' },
 ];
 
-export const products: Product[] = [
+export const products: Product[] = [ // This is now static fallback/example data
   {
     id: '1',
     name: 'Timeless Trench Coat',
@@ -85,25 +88,39 @@ export const products: Product[] = [
   },
 ];
 
+// Add 'Tops' to static categories if not present (used by admin product form)
 if (!categories.find(c => c.id === 'tops')) {
   categories.push({id: 'tops', name: 'Tops', imageUrl: 'https://placehold.co/300x200/E6E6FA/333333.png'});
 }
 
+// Function to fetch products from Firestore
+export async function fetchProductsFromFirestore(): Promise<Product[]> {
+  const productsCollectionRef = collection(db, "products");
+  const q = query(productsCollectionRef, orderBy("createdAt", "desc"));
+  const querySnapshot = await getDocs(q);
+  const fetchedProducts: Product[] = [];
+  querySnapshot.forEach((doc) => {
+    fetchedProducts.push({ id: doc.id, ...doc.data() } as Product);
+  });
+  return fetchedProducts;
+}
 
+
+// --- Static data functions (can be phased out or kept for fallback) ---
 export async function getProducts(category?: string, sortBy?: string): Promise<Product[]> {
   // Simulate API delay
   await new Promise(resolve => setTimeout(resolve, 500));
   
-  let filteredProducts = products;
+  let filteredProducts = products; // Using static products array
   if (category && category !== 'all') {
     filteredProducts = products.filter(p => p.category.toLowerCase() === category.toLowerCase());
   }
 
   if (sortBy) {
     if (sortBy === 'price-asc') {
-      filteredProducts.sort((a, b) => a.mop - b.mop); // Sort by MOP
+      filteredProducts.sort((a, b) => a.mop - b.mop);
     } else if (sortBy === 'price-desc') {
-      filteredProducts.sort((a, b) => b.mop - a.mop); // Sort by MOP
+      filteredProducts.sort((a, b) => b.mop - a.mop);
     } else if (sortBy === 'name-asc') {
       filteredProducts.sort((a,b) => a.name.localeCompare(b.name));
     }
@@ -115,13 +132,17 @@ export async function getProducts(category?: string, sortBy?: string): Promise<P
 export async function getProductById(id: string): Promise<Product | undefined> {
   // Simulate API delay
   await new Promise(resolve => setTimeout(resolve, 300));
-  return products.find(p => p.id === id);
+  // This should ideally fetch from Firestore if products are dynamic.
+  // For now, it could check Firestore first, then static as fallback, or be fully dynamic.
+  // Let's assume products on product page will eventually come from Firestore.
+  // For now, if admin adds products, this static version won't find them unless ID matches.
+  return products.find(p => p.id === id); // Still using static products
 }
 
 export async function getCategories(): Promise<Category[]> {
-  // Simulate API delay
+  // This function returns static categories, which are used in the Admin product form.
+  // The shop page will derive categories dynamically.
   await new Promise(resolve => setTimeout(resolve, 100));
-  // Ensure all categories have a placeholder image if not specified
   return categories.map(c => ({
     ...c,
     imageUrl: c.imageUrl || `https://placehold.co/300x200.png`

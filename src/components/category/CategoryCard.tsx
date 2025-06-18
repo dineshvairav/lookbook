@@ -5,7 +5,6 @@ import type { Category } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
-import { ShoppingBag } from "lucide-react"; // Example icon
 
 interface CategoryCardProps {
   category: Category;
@@ -14,9 +13,14 @@ interface CategoryCardProps {
 }
 
 export function CategoryCard({ category, isActive, onClick }: CategoryCardProps) {
-  const placeholderImage = `https://placehold.co/300x200.png`;
-  // Simple way to generate different placeholder hints for categories
-  const aiHint = category.name.toLowerCase().split(" ").slice(0, 2).join(" ") || "abstract";
+  const defaultPlaceholder = `https://placehold.co/300x200.png`;
+  const imageToUse = category.imageUrl || defaultPlaceholder;
+  
+  // Determine AI hint based on whether the image is a generic placeholder
+  const isGenericPlaceholder = imageToUse.includes('placehold.co');
+  const aiHint = isGenericPlaceholder 
+    ? (category.name.toLowerCase().split(" ").slice(0, 2).join(" ") + (category.name.toLowerCase() === "all" ? "" : " fashion") || "abstract fashion").trim()
+    : "category fashion";
 
   return (
     <Card
@@ -28,12 +32,12 @@ export function CategoryCard({ category, isActive, onClick }: CategoryCardProps)
     >
       <CardHeader className="p-0 relative h-32 sm:h-40">
         <Image
-          src={category.imageUrl || placeholderImage}
+          src={imageToUse}
           alt={category.name}
           layout="fill"
           objectFit="cover"
           className="rounded-t-lg"
-          data-ai-hint={category.imageUrl ? "category fashion" : aiHint} 
+          data-ai-hint={aiHint} 
         />
       </CardHeader>
       <CardContent className="p-4">
