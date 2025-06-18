@@ -1,4 +1,6 @@
 
+import type { Timestamp } from 'firebase/firestore';
+
 export interface Product {
   id: string;
   name: string;
@@ -8,8 +10,11 @@ export interface Product {
   dp?: number; // Dealer Price
   category: string;
   imageUrl: string;
-  features: string; // Comma-separated or structured string
+  features?: string; // Comma-separated or structured string
   images?: string[]; // Array of image URLs for gallery
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
+  slug?: string; // For SEO-friendly URLs
 }
 
 export interface Category {
