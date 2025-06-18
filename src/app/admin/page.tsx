@@ -12,7 +12,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-// Removed Select imports as category will be a text input
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -98,7 +97,6 @@ export default function AdminPage() {
   const {
     register: registerProduct,
     handleSubmit: handleSubmitProduct,
-    // control: controlProduct, // No longer needed for category as it's a text input
     reset: resetProductForm,
     formState: { errors: productErrors }
   } = useForm<ProductFormValues>({
@@ -127,7 +125,7 @@ export default function AdminPage() {
     if (user && user.isAdmin) {
       fetchProducts();
     }
-  }, [user, toast]); 
+  }, [user]); 
 
 
   useEffect(() => {
@@ -171,7 +169,7 @@ export default function AdminPage() {
       resetSharedFileForm();
 
     } catch (error: any) {
-      console.error("Error uploading shared file:", error);
+      console.error("Error uploading shared file to Firebase Storage:", error);
       let errorMessage = "Could not upload file. Please try again.";
       if (error.code) {
          switch (error.code) {
@@ -203,6 +201,9 @@ export default function AdminPage() {
       toast({ title: "Unauthorized", description: "You do not have permission to add products.", variant: "destructive" });
       return;
     }
+    console.log("Attempting product addition. User from AuthContext:", user);
+    console.log("User isAdmin status from AuthContext:", user.isAdmin);
+
     setIsSubmittingProduct(true);
     const imageFile = data.productImage[0];
     const newProductId = doc(collection(db, "products")).id; 
@@ -219,7 +220,7 @@ export default function AdminPage() {
         mrp: data.mrp || undefined,
         mop: data.mop,
         dp: data.dp || undefined,
-        category: data.category.trim(), // Trim whitespace from category name
+        category: data.category.trim(),
         features: data.features || '',
         imageUrl: imageUrl,
         images: [imageUrl], 
@@ -234,13 +235,14 @@ export default function AdminPage() {
       resetProductForm();
       fetchProducts(); 
 
-    } catch (error: any) {
+    } catch (error: any)
+     {
       console.error("Error adding product:", error);
       let errorMessage = "Could not add product. Please try again.";
       if (error.code) {
         switch (error.code) {
           case 'storage/unauthorized':
-            errorMessage = `Storage permission denied for product image (Code: ${error.code}). Check Storage rules for 'product-images'.`;
+            errorMessage = `Product Image Upload: Storage permission denied (Code: ${error.code}). Ensure admin (UID: ${user?.uid}) has 'isAdmin:true' in Firestore and that Storage/Firestore rules allow the 'isAdmin' check via 'get()'.`;
             break;
           case 'firestore/permission-denied':
             errorMessage = `Firestore permission denied (Code: ${error.code}). Could not save product data. Check Firestore rules for 'products' collection.`;
@@ -248,6 +250,8 @@ export default function AdminPage() {
           default:
             errorMessage = `Error: ${error.message || error.code}`;
         }
+      } else if (error.message) {
+        errorMessage = error.message;
       }
       toast({ title: "Product Add Failed", description: errorMessage, variant: "destructive" });
     } finally {
@@ -487,4 +491,3 @@ export default function AdminPage() {
     </div>
   );
 }
-
