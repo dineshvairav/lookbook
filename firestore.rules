@@ -1,0 +1,30 @@
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Users Collection
+    // These rules allow an authenticated user to fully manage their own document.
+    // The 'read' permission implicitly covers 'get' for single document reads,
+    // which is necessary for Storage rules to check the isAdmin flag.
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // INFO: Rules for other collections (e.g., products, categories, sharedFiles)
+    // have been omitted in this simplified version.
+    // Access to those collections will be denied by default until you add
+    // specific rules for them.
+    // For example, to allow admins to manage products, you would add:
+    //
+    // match /products/{productId} {
+    //   allow read: if true;
+    //   allow create, update, delete: if request.auth != null &&
+    //                                   get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    // }
+    //
+    // Similar rules would be needed for 'categories' and 'sharedFiles'
+    // for admin operations.
+  }
+}
