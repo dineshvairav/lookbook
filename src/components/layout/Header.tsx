@@ -14,6 +14,9 @@ import {
   SheetContent,
   SheetTrigger,
   SheetClose,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription
 } from "@/components/ui/sheet";
 
 export function Header() {
@@ -65,16 +68,23 @@ export function Header() {
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="w-[300px] sm:w-[360px] p-0 flex flex-col bg-background">
-              <div className="flex justify-between items-center p-4 border-b border-border/40">
-                <Link href="/" className="text-xl font-bold font-headline text-primary" onClick={closeMobileMenu}>
-                  Lookbook
-                </Link>
-                <SheetClose asChild>
-                  <Button variant="ghost" size="icon" aria-label="Close menu">
-                    <X className="h-6 w-6" />
-                  </Button>
-                </SheetClose>
-              </div>
+              <SheetHeader className="p-4 border-b border-border/40 text-left">
+                <div className="flex justify-between items-center">
+                  <SheetTitle>
+                    <Link href="/" onClick={closeMobileMenu} className="text-xl font-bold font-headline text-primary">
+                      Lookbook
+                    </Link>
+                  </SheetTitle>
+                  <SheetClose asChild>
+                    <Button variant="ghost" size="icon" aria-label="Close menu">
+                      <X className="h-6 w-6" />
+                    </Button>
+                  </SheetClose>
+                </div>
+                <SheetDescription className="sr-only">
+                  Main navigation menu for Lookbook. Access shop, wishlist, profile, and other settings.
+                </SheetDescription>
+              </SheetHeader>
 
               <nav className="flex-grow flex flex-col space-y-1 p-4">
                 <Link
