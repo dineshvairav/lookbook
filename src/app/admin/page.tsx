@@ -57,7 +57,7 @@ import {
 } from "@/components/ui/dialog";
 
 
-const MAX_SHARED_FILE_SIZE_MB = 1; // Updated to 1MB
+const MAX_SHARED_FILE_SIZE_MB = 1;
 const MAX_SHARED_FILE_SIZE_BYTES = MAX_SHARED_FILE_SIZE_MB * 1024 * 1024;
 const ACCEPTED_SHARED_FILE_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
@@ -77,7 +77,7 @@ const sharedFileUploadSchema = z.object({
 });
 type SharedFileUploadFormValues = z.infer<typeof sharedFileUploadSchema>;
 
-const MAX_PRODUCT_IMAGE_SIZE_MB = 1; // Updated to 1MB
+const MAX_PRODUCT_IMAGE_SIZE_MB = 1;
 const MAX_PRODUCT_IMAGE_SIZE_BYTES = MAX_PRODUCT_IMAGE_SIZE_MB * 1024 * 1024;
 const ACCEPTED_PRODUCT_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
@@ -111,7 +111,7 @@ const productFormSchema = z.object({
 type ProductFormValues = z.infer<typeof productFormSchema>;
 
 
-const MAX_CATEGORY_IMAGE_SIZE_MB = 1; // Updated to 1MB
+const MAX_CATEGORY_IMAGE_SIZE_MB = 1;
 const MAX_CATEGORY_IMAGE_SIZE_BYTES = MAX_CATEGORY_IMAGE_SIZE_MB * 1024 * 1024;
 const ACCEPTED_CATEGORY_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
@@ -625,7 +625,7 @@ export default function AdminPage() {
                       type="file"
                       {...registerCategory("categoryImage")}
                       accept={ACCEPTED_CATEGORY_IMAGE_TYPES.join(',')}
-                      className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                      className="file:mr-4 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
                       disabled={isSubmittingCategory}
                     />
                     {categoryErrors.categoryImage && <p className="text-sm text-destructive">{categoryErrors.categoryImage.message as string}</p>}
@@ -802,7 +802,7 @@ export default function AdminPage() {
                       type="file"
                       {...registerProduct("productImage")}
                       accept={ACCEPTED_PRODUCT_IMAGE_TYPES.join(',')}
-                      className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                      className="file:mr-4 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
                       disabled={isSubmittingProduct}
                     />
                     {productErrors.productImage && <p className="text-sm text-destructive">{productErrors.productImage.message as string}</p>}
@@ -979,7 +979,7 @@ export default function AdminPage() {
                     type="file"
                     {...registerSharedFile("file")}
                     accept={ACCEPTED_SHARED_FILE_TYPES.join(',')}
-                    className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                    className="file:mr-4 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
                     disabled={isUploadingSharedFile}
                   />
                   {sharedFileErrors.file && <p className="text-sm text-destructive">{sharedFileErrors.file.message as string}</p>}
