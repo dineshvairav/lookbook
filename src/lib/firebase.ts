@@ -1,6 +1,6 @@
 
 // Import the functions you need from the SDKs you need
-import { initializeApp, getApps, getApp, type FirebaseOptions } from "firebase/app";
+import { initializeApp, getApps, getApp, type FirebaseApp, type FirebaseOptions } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage"; // Import Firebase Storage
@@ -19,7 +19,18 @@ const firebaseConfig: FirebaseOptions = {
 };
 
 // Initialize Firebase
-let app;
+let app: FirebaseApp;
+
+if (!firebaseConfig.apiKey) {
+  console.error(
+    "CRITICAL_FIREBASE_ERROR: NEXT_PUBLIC_FIREBASE_API_KEY is missing or undefined. " +
+    "Please ensure it is correctly set in your .env file and that the Next.js server has been restarted. " +
+    "Firebase cannot be initialized without a valid API key."
+  );
+  // If running in a context where throwing an error is appropriate to halt execution:
+  // throw new Error("Firebase API Key is missing. Check environment variables.");
+}
+
 if (!getApps().length) {
   app = initializeApp(firebaseConfig);
 } else {
@@ -34,7 +45,17 @@ export const storage = getStorage(app);
 // We need to check if messaging is supported by the browser
 const initializeMessaging = async () => {
   if (typeof window !== 'undefined' && (await isSupported())) {
-    return getMessaging(app);
+    // Check if all necessary FCM config values are present
+    if (firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.messagingSenderId && firebaseConfig.appId) {
+        return getMessaging(app);
+    } else {
+        console.warn(
+          "Firebase Messaging could not be initialized due to missing core Firebase configuration. " +
+          "Ensure NEXT_PUBLIC_FIREBASE_API_KEY, NEXT_PUBLIC_FIREBASE_PROJECT_ID, " +
+          "NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID, and NEXT_PUBLIC_FIREBASE_APP_ID are set in your .env file."
+        );
+        return null;
+    }
   }
   return null;
 };
