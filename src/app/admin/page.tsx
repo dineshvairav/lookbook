@@ -57,7 +57,7 @@ import {
 } from "@/components/ui/dialog";
 
 
-const MAX_SHARED_FILE_SIZE_MB = 5;
+const MAX_SHARED_FILE_SIZE_MB = 1; // Updated to 1MB
 const MAX_SHARED_FILE_SIZE_BYTES = MAX_SHARED_FILE_SIZE_MB * 1024 * 1024;
 const ACCEPTED_SHARED_FILE_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
@@ -77,7 +77,7 @@ const sharedFileUploadSchema = z.object({
 });
 type SharedFileUploadFormValues = z.infer<typeof sharedFileUploadSchema>;
 
-const MAX_PRODUCT_IMAGE_SIZE_MB = 2;
+const MAX_PRODUCT_IMAGE_SIZE_MB = 1; // Updated to 1MB
 const MAX_PRODUCT_IMAGE_SIZE_BYTES = MAX_PRODUCT_IMAGE_SIZE_MB * 1024 * 1024;
 const ACCEPTED_PRODUCT_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
@@ -91,22 +91,19 @@ const productFormSchema = z.object({
   features: z.string().optional(),
   productImage: z.any()
     .refine((files: FileList | undefined | null, ctx) => {
-      // Image is required only if not editing or if editing and new image is provided
-      // This logic is simplified; react-hook-form doesn't easily support conditional required based on other state
-      // For now, if it's an edit, we make it optional at schema and handle logic in submit
-      const { editingProduct } = ctx.custom || {}; // Assuming custom context for editingProduct
-      if (editingProduct) return true; // Optional when editing
+      const { editingProduct } = ctx.custom || {}; 
+      if (editingProduct) return true; 
       return files && files.length > 0;
     }, "Product image is required for new products.")
     .refine(
       (files: FileList | undefined | null) => {
-        if (!files || files.length === 0) return true; // Allow empty if optional (e.g. during edit)
+        if (!files || files.length === 0) return true; 
         return files[0].size <= MAX_PRODUCT_IMAGE_SIZE_BYTES;
       }, `Max image size is ${MAX_PRODUCT_IMAGE_SIZE_MB}MB.`
     )
     .refine(
       (files: FileList | undefined | null) => {
-        if (!files || files.length === 0) return true; // Allow empty
+        if (!files || files.length === 0) return true; 
         return ACCEPTED_PRODUCT_IMAGE_TYPES.includes(files[0].type);
       }, `Only ${ACCEPTED_PRODUCT_IMAGE_TYPES.map(t => t.split('/')[1].toUpperCase()).join(', ')} images are accepted.`
     ),
@@ -114,7 +111,7 @@ const productFormSchema = z.object({
 type ProductFormValues = z.infer<typeof productFormSchema>;
 
 
-const MAX_CATEGORY_IMAGE_SIZE_MB = 1;
+const MAX_CATEGORY_IMAGE_SIZE_MB = 1; // Updated to 1MB
 const MAX_CATEGORY_IMAGE_SIZE_BYTES = MAX_CATEGORY_IMAGE_SIZE_MB * 1024 * 1024;
 const ACCEPTED_CATEGORY_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
@@ -145,34 +142,26 @@ export default function AdminPage() {
   const router = useRouter();
   const { toast } = useToast();
   
-  // File Upload state
   const [isUploadingSharedFile, setIsUploadingSharedFile] = useState(false);
-
-  // Product state
   const [isSubmittingProduct, setIsSubmittingProduct] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-
-  // Category state
   const [categoriesList, setCategoriesList] = useState<Category[]>([]);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   const [isSubmittingCategory, setIsSubmittingCategory] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  
-  // Shared Files state
   const [sharedFiles, setSharedFiles] = useState<SharedFile[]>([]);
   const [isLoadingSharedFiles, setIsLoadingSharedFiles] = useState(true);
   const [editingSharedFile, setEditingSharedFile] = useState<SharedFile | null>(null);
   const [isUpdatingSharedFile, setIsUpdatingSharedFile] = useState(false);
   
-  // Delete confirmation state
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState<{
     type: 'product' | 'category' | 'sharedFile';
     id: string;
     name: string;
-    storagePath?: string; // For shared files or images
-    imageUrl?: string; // For product/category images
+    storagePath?: string; 
+    imageUrl?: string; 
   } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -427,17 +416,17 @@ export default function AdminPage() {
       let imageUrl = editingProduct?.imageUrl;
       let imagePath: string | undefined = editingProduct && imageUrl ? getStoragePathFromUrl(imageUrl) : undefined;
 
-      if (imageFile) { // If a new image is uploaded
-        if (editingProduct && editingProduct.imageUrl) { // If editing and old image exists, delete it
+      if (imageFile) { 
+        if (editingProduct && editingProduct.imageUrl) { 
           const oldPath = getStoragePathFromUrl(editingProduct.imageUrl);
           if (oldPath) await deleteObject(storageRef(storage, oldPath)).catch(e => console.warn("Old image deletion failed (might not exist):", e));
         }
-        const newImageId = editingProduct?.id || doc(collection(db, "products")).id; // Use existing ID if editing
+        const newImageId = editingProduct?.id || doc(collection(db, "products")).id; 
         imagePath = `product-images/${newImageId}/${imageFile.name}`;
         const imageFileRef = storageRef(storage, imagePath);
         await uploadBytes(imageFileRef, imageFile);
         imageUrl = await getDownloadURL(imageFileRef);
-      } else if (!editingProduct) { // New product and no image provided
+      } else if (!editingProduct) { 
           toast({title: "Image Required", description: "Product image is required for new products.", variant: "destructive"});
           setIsSubmittingProduct(false);
           return;
@@ -453,7 +442,7 @@ export default function AdminPage() {
         category: data.category,
         features: data.features || '',
         imageUrl: imageUrl,
-        images: imageUrl ? [imageUrl] : [], // Keep images as array
+        images: imageUrl ? [imageUrl] : [], 
         slug: data.name.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, ''),
         updatedAt: serverTimestamp(),
       };
@@ -488,7 +477,6 @@ export default function AdminPage() {
     setProductFormValue("dp", product.dp || null);
     setProductFormValue("category", product.category);
     setProductFormValue("features", product.features || '');
-    // Product image is handled separately as it's a file input
     document.getElementById('productFormCard')?.scrollIntoView({ behavior: 'smooth' });
   };
   
@@ -508,7 +496,6 @@ export default function AdminPage() {
 
     try {
       let imageUrl = editingCategory?.imageUrl;
-      // let imagePath = editingCategory?.imageUrl ? getStoragePathFromUrl(editingCategory.imageUrl) : undefined;
 
       if (imageFile) {
         if (editingCategory && editingCategory.imageUrl) {
@@ -521,8 +508,6 @@ export default function AdminPage() {
         await uploadBytes(imageFileRef, imageFile);
         imageUrl = await getDownloadURL(imageFileRef);
       }
-      // If not editing and no image, imageUrl remains undefined.
-      // If editing and no new image, imageUrl remains editingCategory.imageUrl
 
       const categoryData = {
         name: data.name,
@@ -753,7 +738,7 @@ export default function AdminPage() {
                     <div className="space-y-2">
                       <Label htmlFor="productCategory" className="font-body">Category</Label>
                        <Select
-                        value={editingProduct?.category || undefined} // Control component value if editing
+                        value={editingProduct?.category || undefined} 
                         onValueChange={(value) => setProductFormValue("category", value)}
                         disabled={isSubmittingProduct || isLoadingCategories}
                       >
@@ -1011,7 +996,6 @@ export default function AdminPage() {
       </main>
       <Footer />
 
-      {/* Delete Confirmation Modal */}
       {showDeleteConfirmModal && (
         <AlertDialog open onOpenChange={() => setShowDeleteConfirmModal(null)}>
           <AlertDialogContent>
@@ -1033,7 +1017,6 @@ export default function AdminPage() {
         </AlertDialog>
       )}
 
-      {/* Edit Shared File Phone Number Modal */}
       {editingSharedFile && (
         <Dialog open onOpenChange={() => {
           if (!isUpdatingSharedFile) {
