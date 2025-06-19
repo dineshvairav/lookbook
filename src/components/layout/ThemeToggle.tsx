@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -50,9 +51,9 @@ export function ThemeToggle() {
       className="p-2 rounded-md hover:bg-accent/50 transition-colors"
     >
       {theme === "light" ? (
-        <Sun className="h-5 w-5 text-accent-foreground" />
+        <Sun className="h-5 w-5 text-accent" />
       ) : (
-        <Moon className="h-5 w-5 text-accent-foreground" />
+        <Moon className="h-5 w-5 text-accent" />
       )}
     </button>
   );
