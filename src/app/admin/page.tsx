@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
-import { Loader2, ShieldAlert, LayoutDashboard, UploadCloud, Send, PackagePlus, ListOrdered, Image as ImageIcon, Edit3, Trash2, Shapes, FolderPlus, ListChecks, ClipboardList, Download, Save } from 'lucide-react';
+import { Loader2, ShieldAlert, LayoutDashboard, UploadCloud, Send, PackagePlus, ListOrdered, Image as ImageIcon, Edit3, Trash2, Shapes, FolderPlus, ListChecks, ClipboardList, Download, Save, Users, UserCircle2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,7 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { db, storage } from '@/lib/firebase';
 import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { collection, addDoc, serverTimestamp, query, getDocs, orderBy, doc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
-import type { Product, Category, SharedFile } from '@/lib/types';
+import type { Product, Category, SharedFile, User } from '@/lib/types';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
@@ -55,6 +55,9 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 
 
 const MAX_SHARED_FILE_SIZE_MB = 1;
@@ -136,6 +139,12 @@ const editSharedFileFormSchema = z.object({
 });
 type EditSharedFileFormValues = z.infer<typeof editSharedFileFormSchema>;
 
+const userEditFormSchema = z.object({
+  isAdmin: z.boolean().default(false),
+  isDealer: z.boolean().default(false),
+});
+type UserEditFormValues = z.infer<typeof userEditFormSchema>;
+
 
 export default function AdminPage() {
   const { user, isLoading: authLoading } = useAuth();
@@ -155,6 +164,11 @@ export default function AdminPage() {
   const [isLoadingSharedFiles, setIsLoadingSharedFiles] = useState(true);
   const [editingSharedFile, setEditingSharedFile] = useState<SharedFile | null>(null);
   const [isUpdatingSharedFile, setIsUpdatingSharedFile] = useState(false);
+  
+  const [usersList, setUsersList] = useState<User[]>([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(true);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [isUpdatingUser, setIsUpdatingUser] = useState(false);
   
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState<{
     type: 'product' | 'category' | 'sharedFile';
@@ -203,6 +217,21 @@ export default function AdminPage() {
     formState: { errors: editSharedFileErrors }
   } = useForm<EditSharedFileFormValues>({
     resolver: zodResolver(editSharedFileFormSchema),
+  });
+
+  const {
+    register: registerUserEdit,
+    handleSubmit: handleSubmitUserEdit,
+    reset: resetUserEditForm,
+    setValue: setUserEditFormValue,
+    control: userEditFormControl, // for Checkbox
+    formState: { errors: userEditErrors }
+  } = useForm<UserEditFormValues>({
+    resolver: zodResolver(userEditFormSchema),
+    defaultValues: {
+      isAdmin: false,
+      isDealer: false,
+    }
   });
 
 
@@ -269,11 +298,30 @@ export default function AdminPage() {
     setIsLoadingSharedFiles(false);
   };
 
+  const fetchUsers = async () => {
+    setIsLoadingUsers(true);
+    try {
+      const usersCollectionRef = collection(db, "users");
+      const q = query(usersCollectionRef, orderBy("name", "asc")); // Order by name or email
+      const querySnapshot = await getDocs(q);
+      const fetchedUsers: User[] = [];
+      querySnapshot.forEach((doc) => {
+        fetchedUsers.push({ uid: doc.id, ...doc.data() } as User);
+      });
+      setUsersList(fetchedUsers);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      toast({ title: "Error", description: "Could not fetch users.", variant: "destructive" });
+    }
+    setIsLoadingUsers(false);
+  };
+
   useEffect(() => {
     if (user && user.isAdmin) {
       fetchProducts();
       fetchCategories();
       fetchSharedFiles();
+      fetchUsers();
     }
   }, [user]);
 
@@ -550,6 +598,56 @@ export default function AdminPage() {
     resetCategoryForm();
   };
 
+  const handleEditUserClick = (userToEdit: User) => {
+    setEditingUser(userToEdit);
+    setUserEditFormValue("isAdmin", userToEdit.isAdmin || false);
+    setUserEditFormValue("isDealer", userToEdit.isDealer || false);
+  };
+
+  const onUserEditSubmit: SubmitHandler<UserEditFormValues> = async (data) => {
+    if (!editingUser || !user || !user.isAdmin) {
+      toast({ title: "Error", description: "Invalid operation or insufficient permissions.", variant: "destructive" });
+      return;
+    }
+    // Prevent admin from removing their own admin role
+    if (editingUser.uid === user.uid && !data.isAdmin) {
+        toast({ title: "Action Restricted", description: "You cannot remove your own admin role.", variant: "destructive" });
+        return;
+    }
+
+    setIsUpdatingUser(true);
+    try {
+      const userDocRef = doc(db, "users", editingUser.uid);
+      await updateDoc(userDocRef, {
+        isAdmin: data.isAdmin,
+        isDealer: data.isDealer,
+        updatedAt: serverTimestamp(),
+      });
+      toast({ title: "User Roles Updated", description: `Roles for ${editingUser.name || editingUser.email} have been updated.` });
+      fetchUsers(); // Refresh the user list
+      setEditingUser(null); // Close the dialog
+      resetUserEditForm();
+    } catch (error: any) {
+      console.error("Error updating user roles:", error);
+      toast({ title: "Update Failed", description: error.message || "Could not update user roles.", variant: "destructive" });
+    } finally {
+      setIsUpdatingUser(false);
+    }
+  };
+
+  const getInitials = (name?: string | null, email?: string | null): string => {
+    if (name) {
+      const parts = name.trim().split(' ');
+      if (parts.length > 1 && parts[0] && parts[parts.length -1]) {
+        return (parts[0][0] + parts[parts.length -1][0]).toUpperCase();
+      }
+      if (parts[0] && parts[0].length >=2) return parts[0].substring(0, 2).toUpperCase();
+      if (parts[0]) return parts[0][0].toUpperCase();
+    }
+    if (email) return email.substring(0, 2).toUpperCase();
+    return 'U';
+  };
+
 
   if (authLoading || !user || (user && !user.isAdmin && !authLoading)) { 
     return (
@@ -589,6 +687,74 @@ export default function AdminPage() {
               </CardDescription>
             </CardHeader>
           </Card>
+
+          <Card id="manageUsersCard" className="shadow-xl">
+            <CardHeader>
+              <div className="flex items-center space-x-3">
+                <Users className="h-8 w-8 text-primary" />
+                <CardTitle className="text-2xl font-bold font-headline text-primary">Manage Users</CardTitle>
+              </div>
+              <CardDescription className="font-body text-muted-foreground pt-2">
+                View users and manage their roles (Admin, Dealer).
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoadingUsers ? (
+                <div className="flex justify-center items-center py-10">
+                  <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                </div>
+              ) : usersList.length === 0 ? (
+                <p className="text-center text-muted-foreground py-6">No users found.</p>
+              ) : (
+                <div className="overflow-x-auto rounded-lg border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[60px]">Avatar</TableHead>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Roles</TableHead>
+                        <TableHead className="text-center w-[100px]">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {usersList.map((u) => (
+                        <TableRow key={u.uid}>
+                          <TableCell>
+                            <Avatar className="h-10 w-10">
+                              <AvatarImage src={u.avatarUrl || undefined} alt={u.name || u.email || 'User Avatar'} />
+                              <AvatarFallback>{getInitials(u.name, u.email)}</AvatarFallback>
+                            </Avatar>
+                          </TableCell>
+                          <TableCell className="font-medium">{u.name || 'N/A'}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">{u.email}</TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap gap-1">
+                              {u.isAdmin && <Badge variant="destructive">Admin</Badge>}
+                              {u.isDealer && <Badge variant="secondary">Dealer</Badge>}
+                              {!u.isAdmin && !u.isDealer && <Badge variant="outline">User</Badge>}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Button 
+                              variant="outline" 
+                              size="icon" 
+                              className="h-8 w-8" 
+                              onClick={() => handleEditUserClick(u)}
+                              disabled={u.uid === user.uid && u.isAdmin && usersList.filter(usr => usr.isAdmin).length === 1} // Prevent locking out last admin
+                            >
+                              <Edit3 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
 
           <Card id="categoryFormCard" className="shadow-xl">
             <CardHeader>
@@ -1057,8 +1223,76 @@ export default function AdminPage() {
         </Dialog>
       )}
 
+      {editingUser && (
+        <Dialog open={!!editingUser} onOpenChange={(isOpen) => {
+          if (!isUpdatingUser && !isOpen) {
+            setEditingUser(null);
+            resetUserEditForm();
+          }
+        }}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Edit User Roles: {editingUser.name || editingUser.email}</DialogTitle>
+              <DialogDescription>
+                Modify the Admin and Dealer roles for this user.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleSubmitUserEdit(onUserEditSubmit)} className="space-y-6 py-4">
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2">
+                   <Controller
+                    name="isAdmin"
+                    control={userEditFormControl}
+                    render={({ field }) => (
+                      <Checkbox
+                        id="isAdmin"
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        disabled={isUpdatingUser || (editingUser.uid === user?.uid && usersList.filter(usr => usr.isAdmin).length === 1)}
+                      />
+                    )}
+                  />
+                  <Label htmlFor="isAdmin" className="font-body">
+                    Administrator Role
+                  </Label>
+                </div>
+                {editingUser.uid === user?.uid && usersList.filter(usr => usr.isAdmin).length === 1 && (
+                   <p className="text-xs text-destructive">Cannot remove admin role from the only administrator.</p>
+                )}
+                <div className="flex items-center space-x-2">
+                  <Controller
+                    name="isDealer"
+                    control={userEditFormControl}
+                    render={({ field }) => (
+                       <Checkbox
+                        id="isDealer"
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        disabled={isUpdatingUser}
+                      />
+                    )}
+                  />
+                  <Label htmlFor="isDealer" className="font-body">
+                    Dealer Role
+                  </Label>
+                </div>
+              </div>
+              {userEditErrors.isAdmin && <p className="text-sm text-destructive">{userEditErrors.isAdmin.message}</p>}
+              {userEditErrors.isDealer && <p className="text-sm text-destructive">{userEditErrors.isDealer.message}</p>}
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => { setEditingUser(null); resetUserEditForm(); }} disabled={isUpdatingUser}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isUpdatingUser}>
+                  {isUpdatingUser ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                  {isUpdatingUser ? "Saving..." : "Save Roles"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
+
     </div>
   );
 }
-
-    
