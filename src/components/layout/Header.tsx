@@ -13,7 +13,6 @@ import {
   Sheet,
   SheetContent,
   SheetTrigger,
-  SheetClose,
   SheetHeader,
   SheetTitle,
   SheetDescription
@@ -69,18 +68,13 @@ export function Header() {
             </SheetTrigger>
             <SheetContent side="right" className="w-[300px] sm:w-[360px] p-0 flex flex-col bg-background">
               <SheetHeader className="p-4 border-b border-border/40 text-left">
-                <div className="flex justify-between items-center">
-                  <SheetTitle>
-                    <Link href="/" onClick={closeMobileMenu} className="text-xl font-bold font-headline text-primary">
-                      Lookbook
-                    </Link>
-                  </SheetTitle>
-                  <SheetClose asChild>
-                    <Button variant="ghost" size="icon" aria-label="Close menu">
-                      <X className="h-6 w-6" />
-                    </Button>
-                  </SheetClose>
-                </div>
+                {/* The SheetTitle is now the direct child of SheetHeader as expected for styling & accessibility */}
+                <SheetTitle> 
+                  <Link href="/" onClick={closeMobileMenu} className="text-xl font-bold font-headline text-primary">
+                    Lookbook
+                  </Link>
+                </SheetTitle>
+                {/* The SheetDescription is provided for screen readers */}
                 <SheetDescription className="sr-only">
                   Main navigation menu for Lookbook. Access shop, wishlist, profile, and other settings.
                 </SheetDescription>
