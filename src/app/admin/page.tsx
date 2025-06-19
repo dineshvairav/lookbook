@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
-import { Loader2, ShieldAlert, LayoutDashboard, UploadCloud, Send, PackagePlus, ListOrdered, Image as ImageIcon, Edit3, Trash2, Shapes, FolderPlus, ListChecks, ClipboardList, Download } from 'lucide-react';
+import { Loader2, ShieldAlert, LayoutDashboard, UploadCloud, Send, PackagePlus, ListOrdered, Image as ImageIcon, Edit3, Trash2, Shapes, FolderPlus, ListChecks, ClipboardList, Download, Save } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,8 +17,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { db, storage } from '@/lib/firebase';
-import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
-import { collection, addDoc, serverTimestamp, query, getDocs, orderBy, doc, setDoc } from 'firebase/firestore';
+import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
+import { collection, addDoc, serverTimestamp, query, getDocs, orderBy, doc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
 import type { Product, Category, SharedFile } from '@/lib/types';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -37,6 +37,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 
 const MAX_SHARED_FILE_SIZE_MB = 5;
@@ -72,17 +90,29 @@ const productFormSchema = z.object({
   category: z.string().min(1, "Category is required."),
   features: z.string().optional(),
   productImage: z.any()
-    .refine((files: FileList | undefined | null) => files && files.length > 0, "Product image is required.")
+    .refine((files: FileList | undefined | null, ctx) => {
+      // Image is required only if not editing or if editing and new image is provided
+      // This logic is simplified; react-hook-form doesn't easily support conditional required based on other state
+      // For now, if it's an edit, we make it optional at schema and handle logic in submit
+      const { editingProduct } = ctx.custom || {}; // Assuming custom context for editingProduct
+      if (editingProduct) return true; // Optional when editing
+      return files && files.length > 0;
+    }, "Product image is required for new products.")
     .refine(
-      (files: FileList | undefined | null) => files && files[0] && files[0].size <= MAX_PRODUCT_IMAGE_SIZE_BYTES,
-      `Max image size is ${MAX_PRODUCT_IMAGE_SIZE_MB}MB.`
+      (files: FileList | undefined | null) => {
+        if (!files || files.length === 0) return true; // Allow empty if optional (e.g. during edit)
+        return files[0].size <= MAX_PRODUCT_IMAGE_SIZE_BYTES;
+      }, `Max image size is ${MAX_PRODUCT_IMAGE_SIZE_MB}MB.`
     )
     .refine(
-      (files: FileList | undefined | null) => files && files[0] && ACCEPTED_PRODUCT_IMAGE_TYPES.includes(files[0].type),
-      `Only ${ACCEPTED_PRODUCT_IMAGE_TYPES.map(t => t.split('/')[1].toUpperCase()).join(', ')} images are accepted.`
+      (files: FileList | undefined | null) => {
+        if (!files || files.length === 0) return true; // Allow empty
+        return ACCEPTED_PRODUCT_IMAGE_TYPES.includes(files[0].type);
+      }, `Only ${ACCEPTED_PRODUCT_IMAGE_TYPES.map(t => t.split('/')[1].toUpperCase()).join(', ')} images are accepted.`
     ),
 });
 type ProductFormValues = z.infer<typeof productFormSchema>;
+
 
 const MAX_CATEGORY_IMAGE_SIZE_MB = 1;
 const MAX_CATEGORY_IMAGE_SIZE_BYTES = MAX_CATEGORY_IMAGE_SIZE_MB * 1024 * 1024;
@@ -93,32 +123,58 @@ const categoryFormSchema = z.object({
   description: z.string().optional(),
   categoryImage: z.any().optional()
     .refine((files: FileList | undefined | null) => {
-        if (!files || files.length === 0) return true; // Optional
+        if (!files || files.length === 0) return true;
         return files[0].size <= MAX_CATEGORY_IMAGE_SIZE_BYTES;
       }, `Max image size is ${MAX_CATEGORY_IMAGE_SIZE_MB}MB.`)
     .refine((files: FileList | undefined | null) => {
-        if (!files || files.length === 0) return true; // Optional
+        if (!files || files.length === 0) return true;
         return ACCEPTED_CATEGORY_IMAGE_TYPES.includes(files[0].type);
       }, `Only ${ACCEPTED_CATEGORY_IMAGE_TYPES.map(t => t.split('/')[1].toUpperCase()).join(', ')} images are accepted.`)
 });
 type CategoryFormValues = z.infer<typeof categoryFormSchema>;
+
+const editSharedFileFormSchema = z.object({
+  phoneNumber: z.string().min(10, { message: "Phone number must be at least 10 digits." })
+    .regex(/^\+?[1-9]\d{1,14}$/, { message: "Invalid phone number format. Include country code e.g. +12223334444" }),
+});
+type EditSharedFileFormValues = z.infer<typeof editSharedFileFormSchema>;
 
 
 export default function AdminPage() {
   const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+  
+  // File Upload state
   const [isUploadingSharedFile, setIsUploadingSharedFile] = useState(false);
+
+  // Product state
   const [isSubmittingProduct, setIsSubmittingProduct] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
+  // Category state
   const [categoriesList, setCategoriesList] = useState<Category[]>([]);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   const [isSubmittingCategory, setIsSubmittingCategory] = useState(false);
-
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  
+  // Shared Files state
   const [sharedFiles, setSharedFiles] = useState<SharedFile[]>([]);
   const [isLoadingSharedFiles, setIsLoadingSharedFiles] = useState(true);
+  const [editingSharedFile, setEditingSharedFile] = useState<SharedFile | null>(null);
+  const [isUpdatingSharedFile, setIsUpdatingSharedFile] = useState(false);
+  
+  // Delete confirmation state
+  const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState<{
+    type: 'product' | 'category' | 'sharedFile';
+    id: string;
+    name: string;
+    storagePath?: string; // For shared files or images
+    imageUrl?: string; // For product/category images
+  } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
 
   const {
@@ -144,9 +200,20 @@ export default function AdminPage() {
     register: registerCategory,
     handleSubmit: handleSubmitCategory,
     reset: resetCategoryForm,
+    setValue: setCategoryFormValue,
     formState: { errors: categoryErrors }
   } = useForm<CategoryFormValues>({
     resolver: zodResolver(categoryFormSchema),
+  });
+
+  const {
+    register: registerEditSharedFile,
+    handleSubmit: handleSubmitEditSharedFile,
+    reset: resetEditSharedFileForm,
+    setValue: setEditSharedFileFormValue,
+    formState: { errors: editSharedFileErrors }
+  } = useForm<EditSharedFileFormValues>({
+    resolver: zodResolver(editSharedFileFormSchema),
   });
 
 
@@ -200,7 +267,7 @@ export default function AdminPage() {
             uploadedAtDisplay = data.uploadedAt.toDate().toLocaleDateString();
         } else if (data.uploadedAt && typeof data.uploadedAt === 'string') {
             uploadedAtDisplay = new Date(data.uploadedAt).toLocaleDateString();
-        } else if (data.uploadedAt && typeof data.uploadedAt === 'number') { // Assuming timestamp number
+        } else if (data.uploadedAt && typeof data.uploadedAt === 'number') { 
             uploadedAtDisplay = new Date(data.uploadedAt).toLocaleDateString();
         }
         fetchedFiles.push({ id: doc.id, ...data, uploadedAt: uploadedAtDisplay } as SharedFile);
@@ -232,14 +299,61 @@ export default function AdminPage() {
     }
   }, [user, authLoading, router]);
 
-  const onSharedFileUploadSubmit: SubmitHandler<SharedFileUploadFormValues> = async (data) => {
-    if (!user) {
-      toast({ title: "Unauthorized", description: "You must be logged in.", variant: "destructive" });
-      return;
+  const getStoragePathFromUrl = (url: string): string | null => {
+    try {
+      const urlObj = new URL(url);
+      if (urlObj.hostname === 'firebasestorage.googleapis.com') {
+        const path = urlObj.pathname.split('/o/')[1];
+        if (path) {
+          return decodeURIComponent(path.split('?')[0]);
+        }
+      }
+    } catch (e) {
+      console.error("Error parsing storage URL:", e);
     }
-    
-    if (!user.isAdmin) {
-      toast({ title: "Unauthorized", description: "You do not have permission to perform this action.", variant: "destructive" });
+    return null;
+  };
+  
+  const handleDeleteConfirmation = async () => {
+    if (!showDeleteConfirmModal) return;
+    setIsDeleting(true);
+    const { type, id, name, storagePath, imageUrl } = showDeleteConfirmModal;
+
+    try {
+      if (type === 'product') {
+        if (imageUrl) {
+          const path = getStoragePathFromUrl(imageUrl);
+          if (path) await deleteObject(storageRef(storage, path));
+        }
+        await deleteDoc(doc(db, "products", id));
+        toast({ title: "Product Deleted", description: `${name} has been deleted.` });
+        fetchProducts();
+      } else if (type === 'category') {
+        if (imageUrl) {
+          const path = getStoragePathFromUrl(imageUrl);
+          if (path) await deleteObject(storageRef(storage, path));
+        }
+        await deleteDoc(doc(db, "categories", id));
+        toast({ title: "Category Deleted", description: `${name} has been deleted.` });
+        fetchCategories();
+      } else if (type === 'sharedFile' && storagePath) {
+        await deleteObject(storageRef(storage, storagePath));
+        await deleteDoc(doc(db, "sharedFiles", id));
+        toast({ title: "File Deleted", description: `${name} has been deleted.` });
+        fetchSharedFiles();
+      }
+    } catch (error: any) {
+      console.error(`Error deleting ${type} ${name}:`, error);
+      toast({ title: "Delete Failed", description: `Could not delete ${name}. ${error.message}`, variant: "destructive" });
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteConfirmModal(null);
+    }
+  };
+
+  const onSharedFileUploadSubmit: SubmitHandler<SharedFileUploadFormValues> = async (data) => {
+    if (!user || !user.isAdmin) {
+      toast({ title: "Unauthorized", description: "You do not have permission.", variant: "destructive" });
       return;
     }
     
@@ -264,58 +378,73 @@ export default function AdminPage() {
       });
       toast({ title: "File Uploaded Successfully", description: `${fileToUpload.name} has been uploaded for ${data.phoneNumber}.` });
       resetSharedFileForm();
-      fetchSharedFiles(); // Refresh the list of shared files
+      fetchSharedFiles(); 
 
     } catch (error: any) {
-      console.error("Error uploading shared file to Firebase Storage:", error);
-      let errorMessage = "Could not upload file. Please try again.";
-      if (error.code) {
-         switch (error.code) {
-          case 'storage/unauthorized':
-            errorMessage = `Storage permission denied (Code: ${error.code}). Ensure admin has write access via Storage rules AND Firestore rules allow the 'get()' for isAdmin check on the 'users' collection. Also verify the 'isAdmin' flag in Firestore for UID: ${user?.uid}.`;
-            break;
-          case 'storage/object-not-found':
-          case 'storage/bucket-not-found':
-          case 'storage/project-not-found':
-            errorMessage = `Storage configuration error (Code: ${error.code}). Please check Firebase setup or bucket name.`;
-            break;
-          case 'firestore/permission-denied':
-             errorMessage = `Firestore permission denied (Code: ${error.code}). Could not save file metadata. Check Firestore rules for 'sharedFiles' collection.`;
-            break;
-          default:
-            errorMessage = `Error: ${error.message || error.code}`;
-        }
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      toast({ title: "Upload Failed", description: errorMessage, variant: "destructive" });
+      console.error("Error uploading shared file:", error);
+      toast({ title: "Upload Failed", description: error.message || "Could not upload file.", variant: "destructive" });
     } finally {
       setIsUploadingSharedFile(false);
     }
   };
 
+  const handleEditSharedFileClick = (file: SharedFile) => {
+    setEditingSharedFile(file);
+    setEditSharedFileFormValue("phoneNumber", file.phoneNumber);
+  };
+
+  const onEditSharedFileSubmit: SubmitHandler<EditSharedFileFormValues> = async (data) => {
+    if (!editingSharedFile || !user || !user.isAdmin) {
+      toast({ title: "Error", description: "Invalid operation.", variant: "destructive" });
+      return;
+    }
+    setIsUpdatingSharedFile(true);
+    try {
+      const fileDocRef = doc(db, "sharedFiles", editingSharedFile.id);
+      await updateDoc(fileDocRef, { phoneNumber: data.phoneNumber });
+      toast({ title: "File Updated", description: `Phone number for ${editingSharedFile.originalFileName} updated.` });
+      fetchSharedFiles();
+      setEditingSharedFile(null);
+      resetEditSharedFileForm();
+    } catch (error: any) {
+      console.error("Error updating shared file:", error);
+      toast({ title: "Update Failed", description: error.message || "Could not update file.", variant: "destructive" });
+    } finally {
+      setIsUpdatingSharedFile(false);
+    }
+  };
+
+
   const onProductSubmit: SubmitHandler<ProductFormValues> = async (data) => {
-    if (!user) {
-      toast({ title: "Unauthorized", description: "You must be logged in.", variant: "destructive" });
+    if (!user || !user.isAdmin) {
+      toast({ title: "Unauthorized", description: "Permission denied.", variant: "destructive" });
       return;
     }
-        
-    if (!user.isAdmin) {
-      toast({ title: "Unauthorized", description: "You do not have permission to add products.", variant: "destructive" });
-      return;
-    }
-    
     setIsSubmittingProduct(true);
-    const imageFile = data.productImage[0];
-    const newProductId = doc(collection(db, "products")).id;
+    const imageFile = data.productImage?.[0];
 
     try {
-      const imagePath = `product-images/${newProductId}/${imageFile.name}`;
-      const imageFileRef = storageRef(storage, imagePath);
-      await uploadBytes(imageFileRef, imageFile);
-      const imageUrl = await getDownloadURL(imageFileRef);
+      let imageUrl = editingProduct?.imageUrl;
+      let imagePath: string | undefined = editingProduct && imageUrl ? getStoragePathFromUrl(imageUrl) : undefined;
 
-      const productData: Omit<Product, 'id'> & { createdAt: any, updatedAt: any } = {
+      if (imageFile) { // If a new image is uploaded
+        if (editingProduct && editingProduct.imageUrl) { // If editing and old image exists, delete it
+          const oldPath = getStoragePathFromUrl(editingProduct.imageUrl);
+          if (oldPath) await deleteObject(storageRef(storage, oldPath)).catch(e => console.warn("Old image deletion failed (might not exist):", e));
+        }
+        const newImageId = editingProduct?.id || doc(collection(db, "products")).id; // Use existing ID if editing
+        imagePath = `product-images/${newImageId}/${imageFile.name}`;
+        const imageFileRef = storageRef(storage, imagePath);
+        await uploadBytes(imageFileRef, imageFile);
+        imageUrl = await getDownloadURL(imageFileRef);
+      } else if (!editingProduct) { // New product and no image provided
+          toast({title: "Image Required", description: "Product image is required for new products.", variant: "destructive"});
+          setIsSubmittingProduct(false);
+          return;
+      }
+
+
+      const productData = {
         name: data.name,
         description: data.description,
         mrp: data.mrp || undefined,
@@ -324,99 +453,116 @@ export default function AdminPage() {
         category: data.category,
         features: data.features || '',
         imageUrl: imageUrl,
-        images: [imageUrl],
+        images: imageUrl ? [imageUrl] : [], // Keep images as array
         slug: data.name.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, ''),
-        createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       };
 
-      await setDoc(doc(db, "products", newProductId), productData);
-
-      toast({ title: "Product Added", description: `${data.name} has been successfully added to the catalog.` });
+      if (editingProduct) {
+        await updateDoc(doc(db, "products", editingProduct.id), productData);
+        toast({ title: "Product Updated", description: `${data.name} has been updated.` });
+      } else {
+        const newProductId = doc(collection(db, "products")).id;
+        await setDoc(doc(db, "products", newProductId), { ...productData, createdAt: serverTimestamp() });
+        toast({ title: "Product Added", description: `${data.name} has been added.` });
+      }
+      
       resetProductForm();
+      setEditingProduct(null);
       fetchProducts();
 
     } catch (error: any) {
-      console.error("Error adding product:", error);
-      let errorMessage = "Could not add product. Please try again.";
-      if (error.code) {
-        switch (error.code) {
-          case 'storage/unauthorized':
-            errorMessage = `Product Image Upload: Storage permission denied (Code: ${error.code}). Ensure admin (UID: ${user?.uid}) has 'isAdmin:true' in Firestore and that Storage/Firestore rules allow the 'isAdmin' check via 'get()'.`;
-            break;
-          case 'firestore/permission-denied':
-            errorMessage = `Firestore permission denied (Code: ${error.code}). Could not save product data. Check Firestore rules for 'products' collection.`;
-            break;
-          default:
-            errorMessage = `Error: ${error.message || error.code}`;
-        }
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      toast({ title: "Product Add Failed", description: errorMessage, variant: "destructive" });
+      console.error("Error submitting product:", error);
+      toast({ title: "Product Submission Failed", description: error.message || "Could not save product.", variant: "destructive" });
     } finally {
       setIsSubmittingProduct(false);
     }
   };
 
+  const handleEditProductClick = (product: Product) => {
+    setEditingProduct(product);
+    setProductFormValue("name", product.name);
+    setProductFormValue("description", product.description);
+    setProductFormValue("mrp", product.mrp || null);
+    setProductFormValue("mop", product.mop);
+    setProductFormValue("dp", product.dp || null);
+    setProductFormValue("category", product.category);
+    setProductFormValue("features", product.features || '');
+    // Product image is handled separately as it's a file input
+    document.getElementById('productFormCard')?.scrollIntoView({ behavior: 'smooth' });
+  };
+  
+  const cancelProductEdit = () => {
+    setEditingProduct(null);
+    resetProductForm();
+  };
+
+
   const onCategorySubmit: SubmitHandler<CategoryFormValues> = async (data) => {
-    if (!user) {
-      toast({ title: "Unauthorized", description: "You must be logged in.", variant: "destructive" });
-      return;
-    }
-    
-    if (!user.isAdmin) {
-      toast({ title: "Unauthorized", description: "You do not have permission to manage categories.", variant: "destructive" });
+    if (!user || !user.isAdmin) {
+      toast({ title: "Unauthorized", description: "Permission denied.", variant: "destructive" });
       return;
     }
     setIsSubmittingCategory(true);
     const imageFile = data.categoryImage?.[0];
-    const newCategoryId = doc(collection(db, "categories")).id;
-    let imageUrl: string | undefined = undefined;
 
     try {
+      let imageUrl = editingCategory?.imageUrl;
+      // let imagePath = editingCategory?.imageUrl ? getStoragePathFromUrl(editingCategory.imageUrl) : undefined;
+
       if (imageFile) {
-        const imagePath = `category-images/${newCategoryId}/${imageFile.name}`;
+        if (editingCategory && editingCategory.imageUrl) {
+          const oldPath = getStoragePathFromUrl(editingCategory.imageUrl);
+          if (oldPath) await deleteObject(storageRef(storage, oldPath)).catch(e => console.warn("Old category image deletion failed:", e));
+        }
+        const newImageId = editingCategory?.id || doc(collection(db, "categories")).id;
+        const imagePath = `category-images/${newImageId}/${imageFile.name}`;
         const imageFileRef = storageRef(storage, imagePath);
         await uploadBytes(imageFileRef, imageFile);
         imageUrl = await getDownloadURL(imageFileRef);
       }
+      // If not editing and no image, imageUrl remains undefined.
+      // If editing and no new image, imageUrl remains editingCategory.imageUrl
 
-      const categoryData: Omit<Category, 'id'> & { createdAt: any, updatedAt: any } = {
+      const categoryData = {
         name: data.name,
         description: data.description || '',
         imageUrl: imageUrl,
-        createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       };
 
-      await setDoc(doc(db, "categories", newCategoryId), categoryData);
-
-      toast({ title: "Category Added", description: `${data.name} has been successfully added.` });
+      if (editingCategory) {
+        await updateDoc(doc(db, "categories", editingCategory.id), categoryData);
+        toast({ title: "Category Updated", description: `${data.name} has been updated.` });
+      } else {
+        const newCategoryId = doc(collection(db, "categories")).id;
+        await setDoc(doc(db, "categories", newCategoryId), { ...categoryData, createdAt: serverTimestamp() });
+        toast({ title: "Category Added", description: `${data.name} has been added.` });
+      }
+      
       resetCategoryForm();
+      setEditingCategory(null);
       fetchCategories();
 
-    } catch (error: any) {
-      console.error("Error adding category:", error);
-      let errorMessage = "Could not add category. Please try again.";
-      if (error.code) {
-        switch (error.code) {
-          case 'storage/unauthorized':
-            errorMessage = `Category Image Upload: Storage permission denied (Code: ${error.code}). Ensure admin (UID: ${user?.uid}) has 'isAdmin:true' in Firestore and that Storage/Firestore rules allow the 'isAdmin' check via 'get()'.`;
-            break;
-          case 'firestore/permission-denied':
-            errorMessage = `Firestore permission denied (Code: ${error.code}). Could not save category data. Check Firestore rules for 'categories' collection.`;
-            break;
-          default:
-            errorMessage = `Error: ${error.message || error.code}`;
-        }
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      toast({ title: "Category Add Failed", description: errorMessage, variant: "destructive" });
+    } catch (error: any)
+     {
+      console.error("Error submitting category:", error);
+      toast({ title: "Category Submission Failed", description: error.message || "Could not save category.", variant: "destructive" });
     } finally {
       setIsSubmittingCategory(false);
     }
+  };
+  
+  const handleEditCategoryClick = (category: Category) => {
+    setEditingCategory(category);
+    setCategoryFormValue("name", category.name);
+    setCategoryFormValue("description", category.description || '');
+    document.getElementById('categoryFormCard')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const cancelCategoryEdit = () => {
+    setEditingCategory(null);
+    resetCategoryForm();
   };
 
 
@@ -459,20 +605,20 @@ export default function AdminPage() {
             </CardHeader>
           </Card>
 
-          <Card className="shadow-xl">
+          <Card id="categoryFormCard" className="shadow-xl">
             <CardHeader>
               <div className="flex items-center space-x-3">
                 <Shapes className="h-8 w-8 text-primary" />
                 <CardTitle className="text-2xl font-bold font-headline text-primary">Manage Categories</CardTitle>
               </div>
               <CardDescription className="font-body text-muted-foreground pt-2">
-                Add, view, and manage product categories.
+                {editingCategory ? `Editing: ${editingCategory.name}` : "Add, view, and manage product categories."}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-8">
               <section>
                 <h3 className="text-xl font-semibold font-headline text-accent mb-4 flex items-center">
-                  <FolderPlus className="mr-2 h-5 w-5"/> Add New Category
+                  <FolderPlus className="mr-2 h-5 w-5"/> {editingCategory ? "Edit Category" : "Add New Category"}
                 </h3>
                 <form onSubmit={handleSubmitCategory(onCategorySubmit)} className="space-y-6 p-4 border rounded-lg bg-card">
                   <div className="space-y-2">
@@ -486,7 +632,9 @@ export default function AdminPage() {
                     {categoryErrors.description && <p className="text-sm text-destructive">{categoryErrors.description.message}</p>}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="categoryImage" className="font-body">Image (Optional, Max ${MAX_CATEGORY_IMAGE_SIZE_MB}MB)</Label>
+                    <Label htmlFor="categoryImage" className="font-body">
+                      Image {editingCategory ? '(Leave blank to keep existing)' : ''} (Optional, Max ${MAX_CATEGORY_IMAGE_SIZE_MB}MB)
+                    </Label>
                     <Input
                       id="categoryImage"
                       type="file"
@@ -496,11 +644,24 @@ export default function AdminPage() {
                       disabled={isSubmittingCategory}
                     />
                     {categoryErrors.categoryImage && <p className="text-sm text-destructive">{categoryErrors.categoryImage.message as string}</p>}
+                    {editingCategory && editingCategory.imageUrl && (
+                        <div className="mt-2">
+                            <p className="text-xs text-muted-foreground">Current image:</p>
+                            <Image src={editingCategory.imageUrl} alt="Current category image" width={80} height={80} className="rounded object-cover"/>
+                        </div>
+                    )}
                   </div>
-                  <Button type="submit" disabled={isSubmittingCategory} className="w-full sm:w-auto">
-                    {isSubmittingCategory ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FolderPlus className="mr-2 h-4 w-4" />}
-                    {isSubmittingCategory ? "Adding Category..." : "Add Category"}
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button type="submit" disabled={isSubmittingCategory} className="w-full sm:w-auto">
+                      {isSubmittingCategory ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (editingCategory ? <Save className="mr-2 h-4 w-4" /> : <FolderPlus className="mr-2 h-4 w-4" />)}
+                      {isSubmittingCategory ? (editingCategory ? "Updating..." : "Adding...") : (editingCategory ? "Update Category" : "Add Category")}
+                    </Button>
+                    {editingCategory && (
+                      <Button type="button" variant="outline" onClick={cancelCategoryEdit} disabled={isSubmittingCategory}>
+                        Cancel Edit
+                      </Button>
+                    )}
+                  </div>
                 </form>
               </section>
               <section>
@@ -547,10 +708,11 @@ export default function AdminPage() {
                             <TableCell className="text-sm text-muted-foreground truncate max-w-xs">{category.description || '-'}</TableCell>
                             <TableCell className="text-center">
                               <div className="flex justify-center gap-2">
-                                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => toast({title: "Edit Category (Not Implemented)", description: `Would edit ${category.name}`})}>
+                                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleEditCategoryClick(category)}>
                                   <Edit3 className="h-4 w-4" />
                                 </Button>
-                                <Button variant="destructive" size="icon" className="h-8 w-8" onClick={() => toast({title: "Delete Category (Not Implemented)", description: `Would delete ${category.name}`, variant: "destructive"})}>
+                                <Button variant="destructive" size="icon" className="h-8 w-8" 
+                                  onClick={() => setShowDeleteConfirmModal({ type: 'category', id: category.id, name: category.name, imageUrl: category.imageUrl })}>
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
                               </div>
@@ -566,19 +728,21 @@ export default function AdminPage() {
           </Card>
 
 
-          <Card className="shadow-xl">
+          <Card id="productFormCard" className="shadow-xl">
             <CardHeader>
               <div className="flex items-center space-x-3">
                 <PackagePlus className="h-8 w-8 text-primary" />
                 <CardTitle className="text-2xl font-bold font-headline text-primary">Product Catalog Management</CardTitle>
               </div>
-              <CardDescription className="font-body text-muted-foreground pt-2">
-                Add, view, and manage products in your catalog.
+               <CardDescription className="font-body text-muted-foreground pt-2">
+                {editingProduct ? `Editing: ${editingProduct.name}` : "Add, view, and manage products in your catalog."}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-8">
               <section>
-                <h3 className="text-xl font-semibold font-headline text-accent mb-4">Add New Product</h3>
+                <h3 className="text-xl font-semibold font-headline text-accent mb-4">
+                    {editingProduct ? "Edit Product" : "Add New Product"}
+                </h3>
                 <form onSubmit={handleSubmitProduct(onProductSubmit)} className="space-y-6 p-4 border rounded-lg bg-card">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
@@ -589,6 +753,7 @@ export default function AdminPage() {
                     <div className="space-y-2">
                       <Label htmlFor="productCategory" className="font-body">Category</Label>
                        <Select
+                        value={editingProduct?.category || undefined} // Control component value if editing
                         onValueChange={(value) => setProductFormValue("category", value)}
                         disabled={isSubmittingProduct || isLoadingCategories}
                       >
@@ -644,7 +809,9 @@ export default function AdminPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="productImage" className="font-body">Product Image (Max ${MAX_PRODUCT_IMAGE_SIZE_MB}MB)</Label>
+                    <Label htmlFor="productImage" className="font-body">
+                      Product Image {editingProduct ? '(Leave blank to keep existing)' : ''} (Max ${MAX_PRODUCT_IMAGE_SIZE_MB}MB)
+                    </Label>
                     <Input
                       id="productImage"
                       type="file"
@@ -654,12 +821,24 @@ export default function AdminPage() {
                       disabled={isSubmittingProduct}
                     />
                     {productErrors.productImage && <p className="text-sm text-destructive">{productErrors.productImage.message as string}</p>}
+                     {editingProduct && editingProduct.imageUrl && (
+                        <div className="mt-2">
+                            <p className="text-xs text-muted-foreground">Current image:</p>
+                            <Image src={editingProduct.imageUrl} alt="Current product image" width={80} height={80} className="rounded object-cover"/>
+                        </div>
+                    )}
                   </div>
-
-                  <Button type="submit" disabled={isSubmittingProduct} className="w-full sm:w-auto">
-                    {isSubmittingProduct ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PackagePlus className="mr-2 h-4 w-4" />}
-                    {isSubmittingProduct ? "Adding Product..." : "Add Product to Catalog"}
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button type="submit" disabled={isSubmittingProduct} className="w-full sm:w-auto">
+                      {isSubmittingProduct ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (editingProduct ? <Save className="mr-2 h-4 w-4" /> : <PackagePlus className="mr-2 h-4 w-4" />)}
+                      {isSubmittingProduct ? (editingProduct ? "Updating..." : "Adding...") : (editingProduct ? "Update Product" : "Add Product to Catalog")}
+                    </Button>
+                    {editingProduct && (
+                      <Button type="button" variant="outline" onClick={cancelProductEdit} disabled={isSubmittingProduct}>
+                        Cancel Edit
+                      </Button>
+                    )}
+                  </div>
                 </form>
               </section>
 
@@ -703,10 +882,11 @@ export default function AdminPage() {
                             <TableCell className="text-right">{product.mop.toFixed(2)}</TableCell>
                             <TableCell className="text-center">
                               <div className="flex justify-center gap-2">
-                                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => toast({title: "Edit (Not Implemented)", description: `Would edit ${product.name}`})}>
+                                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleEditProductClick(product)}>
                                   <Edit3 className="h-4 w-4" />
                                 </Button>
-                                <Button variant="destructive" size="icon" className="h-8 w-8" onClick={() => toast({title: "Delete (Not Implemented)", description: `Would delete ${product.name}`, variant: "destructive"})}>
+                                <Button variant="destructive" size="icon" className="h-8 w-8" 
+                                onClick={() => setShowDeleteConfirmModal({ type: 'product', id: product.id, name: product.name, imageUrl: product.imageUrl })}>
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
                               </div>
@@ -764,10 +944,11 @@ export default function AdminPage() {
                                   <Download className="mr-1.5 h-3.5 w-3.5" /> Download
                                 </a>
                               </Button>
-                              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => toast({title: "Edit File (Not Implemented)", description: `Would edit ${file.originalFileName}`})}>
+                              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleEditSharedFileClick(file)}>
                                 <Edit3 className="h-4 w-4" />
                               </Button>
-                              <Button variant="destructive" size="icon" className="h-8 w-8" onClick={() => toast({title: "Delete File (Not Implemented)", description: `Would delete ${file.originalFileName}`, variant: "destructive"})}>
+                              <Button variant="destructive" size="icon" className="h-8 w-8" 
+                                onClick={() => setShowDeleteConfirmModal({ type: 'sharedFile', id: file.id, name: file.originalFileName, storagePath: file.storagePath })}>
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
@@ -826,11 +1007,75 @@ export default function AdminPage() {
               </form>
             </CardContent>
           </Card>
-
         </div>
       </main>
       <Footer />
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirmModal && (
+        <AlertDialog open onOpenChange={() => setShowDeleteConfirmModal(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete the {showDeleteConfirmModal.type} "{showDeleteConfirmModal.name}"
+                { (showDeleteConfirmModal.type === 'sharedFile' || ( (showDeleteConfirmModal.type === 'product' || showDeleteConfirmModal.type === 'category') && showDeleteConfirmModal.imageUrl ) ) && " and its associated file/image from storage."}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setShowDeleteConfirmModal(null)} disabled={isDeleting}>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteConfirmation} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
+                {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                {isDeleting ? "Deleting..." : "Delete"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+
+      {/* Edit Shared File Phone Number Modal */}
+      {editingSharedFile && (
+        <Dialog open onOpenChange={() => {
+          if (!isUpdatingSharedFile) {
+            setEditingSharedFile(null);
+            resetEditSharedFileForm();
+          }
+        }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Phone Number for {editingSharedFile.originalFileName}</DialogTitle>
+              <DialogDescription>
+                Update the phone number associated with this shared file.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleSubmitEditSharedFile(onEditSharedFileSubmit)} className="space-y-4 py-4">
+              <div>
+                <Label htmlFor="editSharedFilePhoneNumber">Phone Number (with country code)</Label>
+                <Input 
+                  id="editSharedFilePhoneNumber" 
+                  type="tel" 
+                  {...registerEditSharedFile("phoneNumber")}
+                  disabled={isUpdatingSharedFile} 
+                  placeholder="+12345678900"
+                />
+                {editSharedFileErrors.phoneNumber && <p className="text-sm text-destructive mt-1">{editSharedFileErrors.phoneNumber.message}</p>}
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => { setEditingSharedFile(null); resetEditSharedFileForm(); }} disabled={isUpdatingSharedFile}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isUpdatingSharedFile}>
+                  {isUpdatingSharedFile ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                  {isUpdatingSharedFile ? "Saving..." : "Save Changes"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
+
     </div>
   );
 }
 
+    
