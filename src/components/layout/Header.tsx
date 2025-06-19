@@ -28,7 +28,7 @@ export function Header() {
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 max-w-screen-2xl items-center justify-between mx-auto px-4 sm:px-6 lg:px-8">
         <Link href="/" className="text-2xl font-bold font-headline text-primary hover:opacity-80 transition-opacity">
-          Lookbook
+          ushªOªpp
         </Link>
 
         {/* Desktop Navigation */}
@@ -69,7 +69,7 @@ export function Header() {
             <SheetContent side="right" className="w-[300px] sm:w-[360px] p-0 flex flex-col bg-background">
               <SheetHeader className="p-4 border-b border-border/40 text-left">
                 {/* The SheetTitle is now the direct child of SheetHeader as expected for styling & accessibility */}
-                <SheetTitle> 
+                <SheetTitle>
                   <Link href="/" onClick={closeMobileMenu} className="text-xl font-bold font-headline text-primary">
                     Lookbook
                   </Link>
@@ -104,15 +104,15 @@ export function Header() {
                     Profile
                   </Link>
                 )}
-                 {user?.isAdmin && (
-                    <Link
-                        href="/admin"
-                        className="text-lg font-medium text-foreground/80 hover:text-primary transition-colors p-3 rounded-md hover:bg-accent/50 block"
-                        onClick={closeMobileMenu}
-                    >
-                        Admin Panel
-                    </Link>
-                 )}
+                {user?.isAdmin && (
+                  <Link
+                    href="/admin"
+                    className="text-lg font-medium text-foreground/80 hover:text-primary transition-colors p-3 rounded-md hover:bg-accent/50 block"
+                    onClick={closeMobileMenu}
+                  >
+                    Admin Panel
+                  </Link>
+                )}
               </nav>
 
               <div className="mt-auto p-4 border-t border-border/40 space-y-4">
@@ -121,8 +121,8 @@ export function Header() {
                   <div className="w-full h-10 bg-muted rounded animate-pulse" />
                 ) : user ? (
                   <div className="flex items-center space-x-2">
-                     <UserNav />
-                     <span className="text-sm text-foreground/80 truncate">{user.name || user.email}</span>
+                    <UserNav />
+                    <span className="text-sm text-foreground/80 truncate">{user.name || user.email}</span>
                   </div>
                 ) : (
                   <AuthDialog />

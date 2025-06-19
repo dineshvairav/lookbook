@@ -70,7 +70,7 @@ export default function LandingPage() {
       <div className="absolute inset-0">
         <Image
           src="https://placehold.co/1920x1080.png"
-          alt="Fashion Montage Background"
+          alt="Abstract fashion-themed background montage"
           layout="fill"
           objectFit="cover"
           className="opacity-20"
@@ -83,7 +83,7 @@ export default function LandingPage() {
         <div className="relative flex justify-center mb-4 animate-fade-in-down logo-container-with-glow">
           <Image
             src="/logo.png" 
-            alt="Lookbook Logo"
+            alt="Lookbook Application Logo"
             width={150}
             height={50}
             className="relative z-10" 
@@ -142,16 +142,16 @@ export default function LandingPage() {
           height: 120px; /* Adjust size, can be elliptical */
           background: conic-gradient(
             from 0deg,
-            hsl(var(--primary) / 0.6),
-            hsl(var(--accent) / 0.6),
-            hsl(var(--secondary) / 0.4),
-            hsl(var(--primary) / 0.6)
+            hsl(var(--primary) / 0.8),
+            hsl(var(--accent) / 0.8),
+            hsl(var(--secondary) / 0.7),
+            hsl(var(--primary) / 0.8)
           );
           border-radius: 50%; /* Can be adjusted for more elliptical shape */
           filter: blur(35px); /* Adjust blur amount for glow intensity */
           animation: rotateGlow 12s linear infinite;
           z-index: 0; /* Behind the logo image */
-          opacity: 0.7; /* Adjust overall glow visibility */
+          opacity: 0.75; /* Adjust overall glow visibility */
         }
 
         @keyframes rotateGlow {
