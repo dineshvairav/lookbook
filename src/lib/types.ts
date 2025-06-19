@@ -35,6 +35,8 @@ export interface User {
   phoneNumber?: string | null;
   address?: string | null;
   avatarUrl?: string | null; // For future use with actual avatar uploads
+  fcmTokens?: string[]; // Array to store FCM device tokens
+  fcmTokensUpdatedAt?: Timestamp; // Timestamp of last token update
 }
 
 export interface SharedFile {

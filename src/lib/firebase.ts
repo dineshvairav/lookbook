@@ -1,21 +1,21 @@
+
 // Import the functions you need from the SDKs you need
-import { initializeApp, getApps, getApp } from "firebase/app";
+import { initializeApp, getApps, getApp, type FirebaseOptions } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage"; // Import Firebase Storage
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+import { getMessaging, isSupported } from "firebase/messaging"; // Added for FCM
 
 // Your web app's Firebase configuration
-// REPLACE THIS WITH YOUR ACTUAL FIREBASE CONFIG
-const firebaseConfig = {
-  apiKey: "AIzaSyCLxeB37BzolegJ8dXixOe1el19rkSDqLM",
-  authDomain: "lookbook-g7ohv.firebaseapp.com",
-  databaseURL: "https://lookbook-g7ohv-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "lookbook-g7ohv",
-  storageBucket: "lookbook-g7ohv.firebasestorage.app", // Ensure this is correct for your project
-  messagingSenderId: "799992658956",
-  appId: "1:799992658956:web:4a13724b58297395a28229"
+// Using environment variables for Firebase config
+const firebaseConfig: FirebaseOptions = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
 // Initialize Firebase
@@ -28,6 +28,19 @@ if (!getApps().length) {
 
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-export const storage = getStorage(app); // Initialize and export storage
+export const storage = getStorage(app);
+
+// Initialize Firebase Messaging and export it
+// We need to check if messaging is supported by the browser
+const initializeMessaging = async () => {
+  if (typeof window !== 'undefined' && (await isSupported())) {
+    return getMessaging(app);
+  }
+  return null;
+};
+
+// messaging will be a Promise that resolves to the Messaging instance or null
+export const messaging = initializeMessaging();
+
 
 export default app;

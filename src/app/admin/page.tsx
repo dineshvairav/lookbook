@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useForm, type SubmitHandler, Controller } from 'react-hook-form'; // Added Controller
+import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
@@ -224,7 +224,7 @@ export default function AdminPage() {
     handleSubmit: handleSubmitUserEdit,
     reset: resetUserEditForm,
     setValue: setUserEditFormValue,
-    control: userEditFormControl, // for Checkbox
+    control: userEditFormControl, 
     formState: { errors: userEditErrors }
   } = useForm<UserEditFormValues>({
     resolver: zodResolver(userEditFormSchema),
@@ -302,7 +302,7 @@ export default function AdminPage() {
     setIsLoadingUsers(true);
     try {
       const usersCollectionRef = collection(db, "users");
-      const q = query(usersCollectionRef, orderBy("name", "asc")); // Order by name or email
+      const q = query(usersCollectionRef, orderBy("name", "asc")); 
       const querySnapshot = await getDocs(q);
       const fetchedUsers: User[] = [];
       querySnapshot.forEach((doc) => {
@@ -311,7 +311,7 @@ export default function AdminPage() {
       setUsersList(fetchedUsers);
     } catch (error) {
       console.error("Error fetching users:", error);
-      toast({ title: "Error", description: "Could not fetch users.", variant: "destructive" });
+      toast({ title: "Error", description: "Could not fetch users. Check permissions.", variant: "destructive" });
     }
     setIsLoadingUsers(false);
   };
@@ -416,6 +416,13 @@ export default function AdminPage() {
       toast({ title: "File Uploaded Successfully", description: `${fileToUpload.name} has been uploaded for ${data.phoneNumber}.` });
       resetSharedFileForm();
       fetchSharedFiles(); 
+
+      // TODO: Trigger a backend function (e.g., Firebase Cloud Function) here to send an FCM notification.
+      // This function would look up FCM tokens associated with data.phoneNumber (if any were collected)
+      // and send a push notification via the Firebase Admin SDK.
+      // Example: await sendNotificationToPhoneNumber(data.phoneNumber, `A new file '${fileToUpload.name}' is available for you.`);
+      console.log(`Placeholder: Would trigger notification for ${data.phoneNumber} about file ${fileToUpload.name}`);
+
 
     } catch (error: any) {
       console.error("Error uploading shared file:", error);
@@ -609,7 +616,6 @@ export default function AdminPage() {
       toast({ title: "Error", description: "Invalid operation or insufficient permissions.", variant: "destructive" });
       return;
     }
-    // Prevent admin from removing their own admin role
     if (editingUser.uid === user.uid && !data.isAdmin) {
         toast({ title: "Action Restricted", description: "You cannot remove your own admin role.", variant: "destructive" });
         return;
@@ -624,8 +630,8 @@ export default function AdminPage() {
         updatedAt: serverTimestamp(),
       });
       toast({ title: "User Roles Updated", description: `Roles for ${editingUser.name || editingUser.email} have been updated.` });
-      fetchUsers(); // Refresh the user list
-      setEditingUser(null); // Close the dialog
+      fetchUsers(); 
+      setEditingUser(null); 
       resetUserEditForm();
     } catch (error: any) {
       console.error("Error updating user roles:", error);
@@ -741,7 +747,7 @@ export default function AdminPage() {
                               size="icon" 
                               className="h-8 w-8" 
                               onClick={() => handleEditUserClick(u)}
-                              disabled={u.uid === user.uid && u.isAdmin && usersList.filter(usr => usr.isAdmin).length === 1} // Prevent locking out last admin
+                              disabled={u.uid === user.uid && u.isAdmin && usersList.filter(usr => usr.isAdmin).length === 1} 
                             >
                               <Edit3 className="h-4 w-4" />
                             </Button>
@@ -1296,4 +1302,3 @@ export default function AdminPage() {
     </div>
   );
 }
-
