@@ -25,7 +25,7 @@ export function OnboardingAuthModal({ onLoginSuccess, onClose }: OnboardingAuthM
   const { toast } = useToast();
   const [isGuestModalOpen, setIsGuestModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [activeTab, setActiveTab] = useState("signup"); 
+  const [activeTab, setActiveTab] = useState("login"); // Default to login
   const router = useRouter();
 
   const currentLoading = authLoading || isSubmitting;
@@ -92,45 +92,12 @@ export function OnboardingAuthModal({ onLoginSuccess, onClose }: OnboardingAuthM
           <CardDescription className="font-body">Create an account or sign in to continue.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="signup" value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <Tabs defaultValue="login" value={activeTab} onValueChange={setActiveTab} className="w-full"> {/* Default to login */}
             <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="signup"><UserPlus className="mr-2 h-4 w-4 inline-block"/>Sign Up</TabsTrigger>
               <TabsTrigger value="login"><LogIn className="mr-2 h-4 w-4 inline-block"/>Login</TabsTrigger>
+              <TabsTrigger value="signup"><UserPlus className="mr-2 h-4 w-4 inline-block"/>Sign Up</TabsTrigger>
             </TabsList>
             
-            <TabsContent value="signup">
-              <form onSubmit={handleEmailSignup} className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="onboarding-signup-email" className="font-body flex items-center"><Mail className="mr-2 h-4 w-4 text-muted-foreground"/>Email</Label>
-                  <Input
-                    id="onboarding-signup-email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@example.com"
-                    required
-                    disabled={currentLoading}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="onboarding-signup-password" className="font-body flex items-center"><KeyRound className="mr-2 h-4 w-4 text-muted-foreground"/>Password</Label>
-                  <Input
-                    id="onboarding-signup-password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Choose a strong password"
-                    required
-                    disabled={currentLoading}
-                  />
-                </div>
-                <Button type="submit" disabled={currentLoading} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
-                  {currentLoading && activeTab === "signup" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
-                  {currentLoading && activeTab === "signup" ? "Creating Account..." : "Create Account"}
-                </Button>
-              </form>
-            </TabsContent>
-
             <TabsContent value="login">
               <form onSubmit={handleEmailLogin} className="space-y-6">
                 <div className="space-y-2">
@@ -160,6 +127,39 @@ export function OnboardingAuthModal({ onLoginSuccess, onClose }: OnboardingAuthM
                 <Button type="submit" disabled={currentLoading} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
                   {currentLoading && activeTab === "login" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogIn className="mr-2 h-4 w-4" />}
                   {currentLoading && activeTab === "login" ? "Logging In..." : "Login"}
+                </Button>
+              </form>
+            </TabsContent>
+
+            <TabsContent value="signup">
+              <form onSubmit={handleEmailSignup} className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="onboarding-signup-email" className="font-body flex items-center"><Mail className="mr-2 h-4 w-4 text-muted-foreground"/>Email</Label>
+                  <Input
+                    id="onboarding-signup-email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    required
+                    disabled={currentLoading}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="onboarding-signup-password" className="font-body flex items-center"><KeyRound className="mr-2 h-4 w-4 text-muted-foreground"/>Password</Label>
+                  <Input
+                    id="onboarding-signup-password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Choose a strong password"
+                    required
+                    disabled={currentLoading}
+                  />
+                </div>
+                <Button type="submit" disabled={currentLoading} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
+                  {currentLoading && activeTab === "signup" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
+                  {currentLoading && activeTab === "signup" ? "Creating Account..." : "Create Account"}
                 </Button>
               </form>
             </TabsContent>
