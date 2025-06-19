@@ -21,17 +21,21 @@ const firebaseConfig: FirebaseOptions = {
 // Initialize Firebase
 let app: FirebaseApp;
 
-// Critical check for the API key
+// Critical check and log for the API key
 if (!firebaseConfig.apiKey || firebaseConfig.apiKey.trim() === "") {
   console.error(
-    "CRITICAL_FIREBASE_ERROR: NEXT_PUBLIC_FIREBASE_API_KEY is missing, undefined, or an empty string. " +
-    "Please ensure it is correctly set to a valid Firebase API Key value in your .env or .env.local file at the project root, " +
-    "and that the Next.js server has been restarted after changes. " +
-    "Firebase cannot be initialized without a valid API key."
+    "CRITICAL_FIREBASE_ERROR: NEXT_PUBLIC_FIREBASE_API_KEY is missing, undefined, or an empty string in your environment variables. " +
+    "Firebase cannot be initialized without a valid API key. " +
+    "Please ensure it is correctly set in your .env file (e.g., .env.local) at the project root, " +
+    "prefixed with NEXT_PUBLIC_, and that the Next.js server has been restarted after changes."
   );
-  // In a production build, you might want to throw an error here or handle it more gracefully.
-  // For development, this console error is crucial for debugging.
+  // You might want to throw an error here in production or handle it more strictly.
+} else {
+  // Log the API key being used (first few and last few characters for verification without exposing the full key)
+  const apiKeyPreview = `${firebaseConfig.apiKey.substring(0, 5)}...${firebaseConfig.apiKey.substring(firebaseConfig.apiKey.length - 5)}`;
+  console.log(`Attempting to initialize Firebase with API Key (preview): ${apiKeyPreview}`);
 }
+
 
 if (!getApps().length) {
   app = initializeApp(firebaseConfig);
