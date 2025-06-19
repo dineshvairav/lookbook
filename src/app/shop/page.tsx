@@ -4,53 +4,59 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
-import { fetchProductsFromFirestore } from "@/lib/data"; // Updated import
+import { fetchProductsFromFirestore } from "@/lib/data";
 import type { Product, Category as CategoryType } from "@/lib/types";
 import { CategoryCard } from "@/components/category/CategoryCard";
 import { ProductCard } from "@/components/product/ProductCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { collection, getDocs, orderBy, query } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { useToast } from "@/hooks/use-toast";
 
 export default function ShopPage() {
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [categoriesData, setCategoriesData] = useState<CategoryType[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>("all");
   const productsSectionRef = useRef<HTMLElement>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
-    async function fetchData() {
-      setIsLoading(true);
+    async function fetchShopData() {
+      setIsLoadingProducts(true);
+      setIsLoadingCategories(true);
       try {
+        // Fetch Products
         const fetchedProducts = await fetchProductsFromFirestore();
         setAllProducts(fetchedProducts);
+        setIsLoadingProducts(false);
 
-        // Dynamically derive categories from fetched products
-        if (fetchedProducts.length > 0) {
-          const uniqueCategoryNames = Array.from(new Set(fetchedProducts.map(p => p.category)));
-          const derivedCategories: CategoryType[] = uniqueCategoryNames.map(name => ({
-            id: name.toLowerCase().replace(/\s+/g, '-'), // Create a slug-like ID
-            name: name,
-            imageUrl: `https://placehold.co/300x200.png` // Generic placeholder
-          }));
-          
-          setCategoriesData([
-            { id: 'all', name: 'All', imageUrl: 'https://placehold.co/300x200/A9A9A9/FFFFFF.png' },
-            ...derivedCategories.sort((a,b) => a.name.localeCompare(b.name)) // Sort derived categories
-          ]);
-        } else {
-            // Fallback if no products, show "All" category or a message
-             setCategoriesData([{ id: 'all', name: 'All', imageUrl: 'https://placehold.co/300x200/A9A9A9/FFFFFF.png' }]);
-        }
+        // Fetch Categories from Firestore
+        const categoriesCollectionRef = collection(db, "categories");
+        const q = query(categoriesCollectionRef, orderBy("name", "asc"));
+        const querySnapshot = await getDocs(q);
+        const fetchedCategories: CategoryType[] = [];
+        querySnapshot.forEach((doc) => {
+          fetchedCategories.push({ id: doc.id, ...doc.data() } as CategoryType);
+        });
+        
+        setCategoriesData([
+          { id: 'all', name: 'All', imageUrl: 'https://placehold.co/300x200/A9A9A9/FFFFFF.png' },
+          ...fetchedCategories
+        ]);
+        setIsLoadingCategories(false);
 
       } catch (error) {
-        console.error("ShopPage: Failed to fetch products from Firestore:", error);
-        // Optionally set static data or error state here
+        console.error("ShopPage: Failed to fetch data:", error);
+        toast({ title: "Error", description: "Could not fetch shop data.", variant: "destructive" });
+        setIsLoadingProducts(false);
+        setIsLoadingCategories(false);
       }
-      setIsLoading(false);
     }
-    fetchData();
-  }, []);
+    fetchShopData();
+  }, [toast]);
 
   const handleCategorySelect = (categoryId: string) => {
     setSelectedCategoryId(categoryId);
@@ -63,12 +69,11 @@ export default function ShopPage() {
     if (selectedCategoryId === "all") {
       return allProducts;
     }
-    // Find the category name that matches the selectedCategoryId (which is slug-like)
     const selectedCategoryObject = categoriesData.find(c => c.id === selectedCategoryId);
     if (selectedCategoryObject) {
         return allProducts.filter(p => p.category === selectedCategoryObject.name);
     }
-    return []; // Or allProducts if category not found, though this shouldn't happen with derived categories.
+    return []; 
   }, [allProducts, selectedCategoryId, categoriesData]);
 
   const currentCategoryName = useMemo(() => {
@@ -76,6 +81,8 @@ export default function ShopPage() {
     const cat = categoriesData.find(c => c.id === selectedCategoryId);
     return cat ? cat.name : 'Products';
   }, [selectedCategoryId, categoriesData]);
+
+  const isLoading = isLoadingProducts || isLoadingCategories;
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -85,7 +92,7 @@ export default function ShopPage() {
           <h2 className="text-3xl font-bold mb-6 text-center font-headline text-primary">
             Shop by Category
           </h2>
-          {isLoading && categoriesData.length === 0 ? (
+          {isLoadingCategories ? (
             <div className="flex flex-wrap justify-center gap-4 sm:gap-6">
               {Array.from({ length: 4 }).map((_, index) => (
                 <div key={index} className="w-full sm:w-56 md:w-64">
@@ -96,7 +103,7 @@ export default function ShopPage() {
                 </div>
               ))}
             </div>
-          ) : categoriesData.length > 1 ? ( // Only show if more than "All"
+          ) : categoriesData.length > 1 ? ( 
             <div className="flex flex-wrap justify-center gap-4 sm:gap-6">
               {categoriesData.map((category) => (
                 <CategoryCard
@@ -107,8 +114,8 @@ export default function ShopPage() {
                 />
               ))}
             </div>
-          ) : !isLoading && categoriesData.length <=1 ? (
-             <p className="text-center text-muted-foreground font-body">No product categories available yet.</p>
+          ) : !isLoadingCategories && categoriesData.length <=1 ? (
+             <p className="text-center text-muted-foreground font-body">No product categories available yet. Add some from the admin panel!</p>
           ) : null}
         </section>
 
@@ -116,7 +123,7 @@ export default function ShopPage() {
           <h2 className="text-3xl font-bold mb-6 text-center font-headline text-accent">
             {currentCategoryName}
           </h2>
-          {isLoading && allProducts.length === 0 ? (
+          {isLoadingProducts ? (
              <div className="flex space-x-4 p-4 overflow-hidden">
                {Array.from({ length: 4 }).map((_, index) => (
                  <div key={index} className="w-72 flex-shrink-0">
