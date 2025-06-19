@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
-import { Loader2, ShieldAlert, LayoutDashboard, UploadCloud, Send, PackagePlus, ListOrdered, Image as ImageIcon, Edit3, Trash2, Shapes, FolderPlus, ListChecks, ClipboardList, Download, Save, Users, UserCircle2 } from 'lucide-react';
+import { Loader2, ShieldAlert, LayoutDashboard, UploadCloud, Send, PackagePlus, ListOrdered, Image as ImageIcon, Edit3, Trash2, Shapes, FolderPlus, ListChecks, ClipboardList, Download, Save, Users, UserCircle2, MessageSquare } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -94,19 +94,19 @@ const productFormSchema = z.object({
   features: z.string().optional(),
   productImage: z.any()
     .refine((files: FileList | undefined | null, ctx) => {
-      const { editingProduct } = ctx.custom || {}; 
-      if (editingProduct) return true; 
+      const { editingProduct } = ctx.custom || {};
+      if (editingProduct) return true;
       return files && files.length > 0;
     }, "Product image is required for new products.")
     .refine(
       (files: FileList | undefined | null) => {
-        if (!files || files.length === 0) return true; 
+        if (!files || files.length === 0) return true;
         return files[0].size <= MAX_PRODUCT_IMAGE_SIZE_BYTES;
       }, `Max image size is ${MAX_PRODUCT_IMAGE_SIZE_MB}MB.`
     )
     .refine(
       (files: FileList | undefined | null) => {
-        if (!files || files.length === 0) return true; 
+        if (!files || files.length === 0) return true;
         return ACCEPTED_PRODUCT_IMAGE_TYPES.includes(files[0].type);
       }, `Only ${ACCEPTED_PRODUCT_IMAGE_TYPES.map(t => t.split('/')[1].toUpperCase()).join(', ')} images are accepted.`
     ),
@@ -145,6 +145,13 @@ const userEditFormSchema = z.object({
 });
 type UserEditFormValues = z.infer<typeof userEditFormSchema>;
 
+const notificationFormSchema = z.object({
+  title: z.string().min(3, "Title must be at least 3 characters.").max(100, "Title too long."),
+  body: z.string().min(10, "Body must be at least 10 characters.").max(500, "Body too long."),
+  target: z.enum(["all", "dealers", "nonDealers"], { required_error: "Target audience is required."}),
+});
+type NotificationFormValues = z.infer<typeof notificationFormSchema>;
+
 
 export default function AdminPage() {
   const { user, isLoading: authLoading } = useAuth();
@@ -170,12 +177,14 @@ export default function AdminPage() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [isUpdatingUser, setIsUpdatingUser] = useState(false);
   
+  const [isSendingNotification, setIsSendingNotification] = useState(false);
+  
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState<{
     type: 'product' | 'category' | 'sharedFile';
     id: string;
     name: string;
-    storagePath?: string; 
-    imageUrl?: string; 
+    storagePath?: string;
+    imageUrl?: string;
   } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -224,7 +233,7 @@ export default function AdminPage() {
     handleSubmit: handleSubmitUserEdit,
     reset: resetUserEditForm,
     setValue: setUserEditFormValue,
-    control: userEditFormControl, 
+    control: userEditFormControl,
     formState: { errors: userEditErrors }
   } = useForm<UserEditFormValues>({
     resolver: zodResolver(userEditFormSchema),
@@ -232,6 +241,16 @@ export default function AdminPage() {
       isAdmin: false,
       isDealer: false,
     }
+  });
+  
+  const {
+    register: registerNotification,
+    handleSubmit: handleSubmitNotification,
+    reset: resetNotificationForm,
+    control: notificationControl, // For Select component
+    formState: { errors: notificationErrors }
+  } = useForm<NotificationFormValues>({
+    resolver: zodResolver(notificationFormSchema),
   });
 
 
@@ -285,7 +304,7 @@ export default function AdminPage() {
             uploadedAtDisplay = data.uploadedAt.toDate().toLocaleDateString();
         } else if (data.uploadedAt && typeof data.uploadedAt === 'string') {
             uploadedAtDisplay = new Date(data.uploadedAt).toLocaleDateString();
-        } else if (data.uploadedAt && typeof data.uploadedAt === 'number') { 
+        } else if (data.uploadedAt && typeof data.uploadedAt === 'number') {
             uploadedAtDisplay = new Date(data.uploadedAt).toLocaleDateString();
         }
         fetchedFiles.push({ id: doc.id, ...data, uploadedAt: uploadedAtDisplay } as SharedFile);
@@ -302,7 +321,7 @@ export default function AdminPage() {
     setIsLoadingUsers(true);
     try {
       const usersCollectionRef = collection(db, "users");
-      const q = query(usersCollectionRef, orderBy("name", "asc")); 
+      const q = query(usersCollectionRef, orderBy("name", "asc"));
       const querySnapshot = await getDocs(q);
       const fetchedUsers: User[] = [];
       querySnapshot.forEach((doc) => {
@@ -415,13 +434,12 @@ export default function AdminPage() {
       });
       toast({ title: "File Uploaded Successfully", description: `${fileToUpload.name} has been uploaded for ${data.phoneNumber}.` });
       resetSharedFileForm();
-      fetchSharedFiles(); 
+      fetchSharedFiles();
 
-      // TODO: Trigger a backend function (e.g., Firebase Cloud Function) here to send an FCM notification.
-      // This function would look up FCM tokens associated with data.phoneNumber (if any were collected)
-      // and send a push notification via the Firebase Admin SDK.
-      // Example: await sendNotificationToPhoneNumber(data.phoneNumber, `A new file '${fileToUpload.name}' is available for you.`);
-      console.log(`Placeholder: Would trigger notification for ${data.phoneNumber} about file ${fileToUpload.name}`);
+      // TODO: Trigger a backend function (e.g., Firebase Cloud Function) here to send an FCM notification
+      // to the user associated with data.phoneNumber if they have an FCM token.
+      // Example payload for the function: { phoneNumber: data.phoneNumber, fileName: fileToUpload.name, downloadURL: downloadURL }
+      console.log(`Placeholder: Would trigger backend notification for ${data.phoneNumber} about file ${fileToUpload.name}`);
 
 
     } catch (error: any) {
@@ -471,17 +489,17 @@ export default function AdminPage() {
       let imageUrl = editingProduct?.imageUrl;
       let imagePath: string | undefined = editingProduct && imageUrl ? getStoragePathFromUrl(imageUrl) : undefined;
 
-      if (imageFile) { 
-        if (editingProduct && editingProduct.imageUrl) { 
+      if (imageFile) {
+        if (editingProduct && editingProduct.imageUrl) {
           const oldPath = getStoragePathFromUrl(editingProduct.imageUrl);
           if (oldPath) await deleteObject(storageRef(storage, oldPath)).catch(e => console.warn("Old image deletion failed (might not exist):", e));
         }
-        const newImageId = editingProduct?.id || doc(collection(db, "products")).id; 
+        const newImageId = editingProduct?.id || doc(collection(db, "products")).id;
         imagePath = `product-images/${newImageId}/${imageFile.name}`;
         const imageFileRef = storageRef(storage, imagePath);
         await uploadBytes(imageFileRef, imageFile);
         imageUrl = await getDownloadURL(imageFileRef);
-      } else if (!editingProduct) { 
+      } else if (!editingProduct) {
           toast({title: "Image Required", description: "Product image is required for new products.", variant: "destructive"});
           setIsSubmittingProduct(false);
           return;
@@ -497,7 +515,7 @@ export default function AdminPage() {
         category: data.category,
         features: data.features || '',
         imageUrl: imageUrl,
-        images: imageUrl ? [imageUrl] : [], 
+        images: imageUrl ? [imageUrl] : [],
         slug: data.name.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, ''),
         updatedAt: serverTimestamp(),
       };
@@ -630,8 +648,8 @@ export default function AdminPage() {
         updatedAt: serverTimestamp(),
       });
       toast({ title: "User Roles Updated", description: `Roles for ${editingUser.name || editingUser.email} have been updated.` });
-      fetchUsers(); 
-      setEditingUser(null); 
+      fetchUsers();
+      setEditingUser(null);
       resetUserEditForm();
     } catch (error: any) {
       console.error("Error updating user roles:", error);
@@ -640,6 +658,40 @@ export default function AdminPage() {
       setIsUpdatingUser(false);
     }
   };
+  
+  const onSendNotificationSubmit: SubmitHandler<NotificationFormValues> = async (data) => {
+    if (!user || !user.isAdmin) {
+      toast({ title: "Unauthorized", description: "Permission denied.", variant: "destructive" });
+      return;
+    }
+    setIsSendingNotification(true);
+    
+    // In a real application, this would call a Firebase Cloud Function
+    // The function would query users based on the target and send FCM messages.
+    // Example: await sendPushNotificationToTarget(data.title, data.body, data.target);
+    console.log("Attempting to send notification:", data);
+
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    toast({ title: "Notification Sent (Simulated)", description: `"${data.title}" would be sent to ${data.target}.` });
+    resetNotificationForm();
+    setIsSendingNotification(false);
+
+    // TODO: Implement a Firebase Cloud Function to handle actual push notification sending.
+    // This function should:
+    // 1. Be callable (e.g., HTTPS callable function).
+    // 2. Receive `title`, `body`, and `target` as parameters.
+    // 3. Query Firestore for users matching the `target`:
+    //    - "all": All users with `fcmTokens`.
+    //    - "dealers": Users with `isDealer: true` and `fcmTokens`.
+    //    - "nonDealers": Users with `isDealer: false` (or field not present) and `fcmTokens`.
+    // 4. Collect all unique FCM tokens from the targeted users.
+    // 5. Use the Firebase Admin SDK (`admin.messaging().sendToDevice()`, `sendEachForMulticast()`, or Topic Messaging)
+    //    to send the push notification with the provided title and body to the collected tokens.
+    // 6. Handle token cleanup (e.g., remove invalid/unregistered tokens from Firestore).
+  };
+
 
   const getInitials = (name?: string | null, email?: string | null): string => {
     if (name) {
@@ -655,7 +707,7 @@ export default function AdminPage() {
   };
 
 
-  if (authLoading || !user || (user && !user.isAdmin && !authLoading)) { 
+  if (authLoading || !user || (user && !user.isAdmin && !authLoading)) {
     return (
       <div className="flex flex-col min-h-screen">
         <Header />
@@ -693,6 +745,75 @@ export default function AdminPage() {
               </CardDescription>
             </CardHeader>
           </Card>
+
+          <Card id="sendNotificationCard" className="shadow-xl">
+            <CardHeader>
+              <div className="flex items-center space-x-3">
+                <MessageSquare className="h-8 w-8 text-primary" />
+                <CardTitle className="text-2xl font-bold font-headline text-primary">Send Push Notification</CardTitle>
+              </div>
+              <CardDescription className="font-body text-muted-foreground pt-2">
+                Compose and send a push notification to a targeted group of users.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmitNotification(onSendNotificationSubmit)} className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="notificationTitle" className="font-body">Notification Title</Label>
+                  <Input
+                    id="notificationTitle"
+                    {...registerNotification("title")}
+                    placeholder="e.g., New Arrivals Alert!"
+                    disabled={isSendingNotification}
+                  />
+                  {notificationErrors.title && <p className="text-sm text-destructive">{notificationErrors.title.message}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="notificationBody" className="font-body">Notification Body</Label>
+                  <Textarea
+                    id="notificationBody"
+                    {...registerNotification("body")}
+                    placeholder="e.g., Check out our latest collection of summer dresses..."
+                    rows={4}
+                    disabled={isSendingNotification}
+                  />
+                  {notificationErrors.body && <p className="text-sm text-destructive">{notificationErrors.body.message}</p>}
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="notificationTarget" className="font-body">Target Audience</Label>
+                  <Controller
+                    name="target"
+                    control={notificationControl}
+                    render={({ field }) => (
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        disabled={isSendingNotification}
+                      >
+                        <SelectTrigger id="notificationTarget">
+                          <SelectValue placeholder="Select target audience" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Users</SelectItem>
+                          <SelectItem value="dealers">Dealers Only</SelectItem>
+                          <SelectItem value="nonDealers">Non-Dealers Only</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  {notificationErrors.target && <p className="text-sm text-destructive">{notificationErrors.target.message}</p>}
+                </div>
+
+                <Button type="submit" disabled={isSendingNotification} className="w-full sm:w-auto">
+                  {isSendingNotification ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                  {isSendingNotification ? "Sending..." : "Send Notification"}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+
 
           <Card id="manageUsersCard" className="shadow-xl">
             <CardHeader>
@@ -742,12 +863,12 @@ export default function AdminPage() {
                             </div>
                           </TableCell>
                           <TableCell className="text-center">
-                            <Button 
-                              variant="outline" 
-                              size="icon" 
-                              className="h-8 w-8" 
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8"
                               onClick={() => handleEditUserClick(u)}
-                              disabled={u.uid === user.uid && u.isAdmin && usersList.filter(usr => usr.isAdmin).length === 1} 
+                              disabled={u.uid === user.uid && u.isAdmin && usersList.filter(usr => usr.isAdmin).length === 1}
                             >
                               <Edit3 className="h-4 w-4" />
                             </Button>
@@ -797,7 +918,7 @@ export default function AdminPage() {
                       type="file"
                       {...registerCategory("categoryImage")}
                       accept={ACCEPTED_CATEGORY_IMAGE_TYPES.join(',')}
-                      className="file:mr-4 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                      className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
                       disabled={isSubmittingCategory}
                     />
                     {categoryErrors.categoryImage && <p className="text-sm text-destructive">{categoryErrors.categoryImage.message as string}</p>}
@@ -868,7 +989,7 @@ export default function AdminPage() {
                                 <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleEditCategoryClick(category)}>
                                   <Edit3 className="h-4 w-4" />
                                 </Button>
-                                <Button variant="destructive" size="icon" className="h-8 w-8" 
+                                <Button variant="destructive" size="icon" className="h-8 w-8"
                                   onClick={() => setShowDeleteConfirmModal({ type: 'category', id: category.id, name: category.name, imageUrl: category.imageUrl })}>
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
@@ -910,7 +1031,7 @@ export default function AdminPage() {
                     <div className="space-y-2">
                       <Label htmlFor="productCategory" className="font-body">Category</Label>
                        <Select
-                        value={editingProduct?.category || undefined} 
+                        value={editingProduct?.category || undefined}
                         onValueChange={(value) => setProductFormValue("category", value)}
                         disabled={isSubmittingProduct || isLoadingCategories}
                       >
@@ -974,7 +1095,7 @@ export default function AdminPage() {
                       type="file"
                       {...registerProduct("productImage")}
                       accept={ACCEPTED_PRODUCT_IMAGE_TYPES.join(',')}
-                      className="file:mr-4 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                      className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
                       disabled={isSubmittingProduct}
                     />
                     {productErrors.productImage && <p className="text-sm text-destructive">{productErrors.productImage.message as string}</p>}
@@ -1042,7 +1163,7 @@ export default function AdminPage() {
                                 <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleEditProductClick(product)}>
                                   <Edit3 className="h-4 w-4" />
                                 </Button>
-                                <Button variant="destructive" size="icon" className="h-8 w-8" 
+                                <Button variant="destructive" size="icon" className="h-8 w-8"
                                 onClick={() => setShowDeleteConfirmModal({ type: 'product', id: product.id, name: product.name, imageUrl: product.imageUrl })}>
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
@@ -1104,7 +1225,7 @@ export default function AdminPage() {
                               <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleEditSharedFileClick(file)}>
                                 <Edit3 className="h-4 w-4" />
                               </Button>
-                              <Button variant="destructive" size="icon" className="h-8 w-8" 
+                              <Button variant="destructive" size="icon" className="h-8 w-8"
                                 onClick={() => setShowDeleteConfirmModal({ type: 'sharedFile', id: file.id, name: file.originalFileName, storagePath: file.storagePath })}>
                                 <Trash2 className="h-4 w-4" />
                               </Button>
@@ -1151,7 +1272,7 @@ export default function AdminPage() {
                     type="file"
                     {...registerSharedFile("file")}
                     accept={ACCEPTED_SHARED_FILE_TYPES.join(',')}
-                    className="file:mr-4 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                    className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
                     disabled={isUploadingSharedFile}
                   />
                   {sharedFileErrors.file && <p className="text-sm text-destructive">{sharedFileErrors.file.message as string}</p>}
@@ -1206,11 +1327,11 @@ export default function AdminPage() {
             <form onSubmit={handleSubmitEditSharedFile(onEditSharedFileSubmit)} className="space-y-4 py-4">
               <div>
                 <Label htmlFor="editSharedFilePhoneNumber">Phone Number (with country code)</Label>
-                <Input 
-                  id="editSharedFilePhoneNumber" 
-                  type="tel" 
+                <Input
+                  id="editSharedFilePhoneNumber"
+                  type="tel"
                   {...registerEditSharedFile("phoneNumber")}
-                  disabled={isUpdatingSharedFile} 
+                  disabled={isUpdatingSharedFile}
                   placeholder="+12345678900"
                 />
                 {editSharedFileErrors.phoneNumber && <p className="text-sm text-destructive mt-1">{editSharedFileErrors.phoneNumber.message}</p>}
@@ -1302,3 +1423,5 @@ export default function AdminPage() {
     </div>
   );
 }
+
+    
