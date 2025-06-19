@@ -9,6 +9,8 @@ import {
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
   signOut as firebaseSignOut,
+  GoogleAuthProvider, // Added
+  signInWithPopup,      // Added
   type User as FirebaseUser 
 } from "firebase/auth";
 import { doc, getDoc, setDoc, serverTimestamp, updateDoc } from "firebase/firestore";
@@ -20,7 +22,8 @@ interface AuthContextType {
   login: (email: string, password?: string) => Promise<void>;
   logout: () => Promise<void>;
   signup: (email: string, password?: string) => Promise<void>;
-  updateUserInContext: (updatedData: Partial<User>) => void; // For updating local user state
+  signInWithGoogle: () => Promise<void>; // Added
+  updateUserInContext: (updatedData: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -47,11 +50,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             isAdmin: userData.isAdmin || false,
             phoneNumber: userData.phoneNumber || null,
             address: userData.address || null,
-            avatarUrl: userData.avatarUrl || null,
+            avatarUrl: userData.avatarUrl || firebaseUser.photoURL || null, // Prioritize Firestore avatar
           });
         } else {
-          // This case should ideally not happen if signup creates the doc properly
-          // But as a fallback, create it.
+          // New user (either via email/pass signup or first Google sign-in)
           const newUser: User = {
             uid: firebaseUser.uid,
             email: firebaseUser.email,
@@ -60,7 +62,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             isAdmin: false,
             phoneNumber: null,
             address: null,
-            avatarUrl: null,
+            avatarUrl: firebaseUser.photoURL || null, // Use Google's photoURL if available
           };
           await setDoc(userDocRef, { 
             email: newUser.email, 
@@ -71,6 +73,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             address: newUser.address,
             avatarUrl: newUser.avatarUrl,
             createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
           });
           setUser(newUser);
         }
@@ -105,22 +108,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       const userDocRef = doc(db, "users", firebaseUser.uid);
       const userName = firebaseUser.displayName || firebaseUser.email?.split('@')[0];
+      const userAvatar = firebaseUser.photoURL || null;
+
       await setDoc(userDocRef, {
-        uid: firebaseUser.uid,
+        uid: firebaseUser.uid, // Not strictly necessary if doc ID is uid, but good for consistency
         email: firebaseUser.email,
         name: userName,
         isDealer: false, 
         isAdmin: false,
-        phoneNumber: null, // Initialize new fields
-        address: null,     // Initialize new fields
-        avatarUrl: null,   // Initialize new fields
+        phoneNumber: null, 
+        address: null,     
+        avatarUrl: userAvatar,   
         createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
       });
-      // onAuthStateChanged will handle setting user and setIsLoading(false)
+      // onAuthStateChanged will handle setting user state and setIsLoading(false)
     } catch (error) {
       setIsLoading(false);
       console.error("Firebase signup error:", error);
       throw error; 
+    }
+  };
+
+  const signInWithGoogle = async () => {
+    setIsLoading(true);
+    const provider = new GoogleAuthProvider();
+    try {
+      await signInWithPopup(auth, provider);
+      // onAuthStateChanged will handle setting user, Firestore doc, and setIsLoading(false)
+    } catch (error) {
+      setIsLoading(false);
+      console.error("Firebase Google sign-in error:", error);
+      throw error;
     }
   };
 
@@ -131,12 +150,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       router.push('/'); 
     } catch (error) {
       console.error("Firebase logout error:", error);
-      // Still set loading to false in case of error during logout, 
-      // though onAuthStateChanged should also trigger.
       setIsLoading(false); 
       throw error;
     }
-    // setIsLoading(false) will be handled by onAuthStateChanged
   };
 
   const updateUserInContext = (updatedData: Partial<User>) => {
@@ -147,7 +163,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout, signup, updateUserInContext }}>
+    <AuthContext.Provider value={{ user, isLoading, login, logout, signup, signInWithGoogle, updateUserInContext }}>
       {children}
     </AuthContext.Provider>
   );

@@ -10,8 +10,8 @@ import { useToast } from '@/hooks/use-toast';
 import { GuestLoginModal } from './GuestLoginModal'; 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, LogIn, Mail, KeyRound, UserPlus, User } from 'lucide-react'; // Added User
-import { useRouter } from 'next/navigation'; // Import useRouter
+import { Loader2, LogIn, Mail, KeyRound, UserPlus, User } from 'lucide-react'; 
+import { useRouter } from 'next/navigation';
 
 interface OnboardingAuthModalProps {
   onLoginSuccess: () => void; 
@@ -21,12 +21,12 @@ interface OnboardingAuthModalProps {
 export function OnboardingAuthModal({ onLoginSuccess, onClose }: OnboardingAuthModalProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const { login, signup, isLoading: authLoading } = useAuth();
+  const { login, signup, signInWithGoogle, isLoading: authLoading } = useAuth(); // Added signInWithGoogle
   const { toast } = useToast();
   const [isGuestModalOpen, setIsGuestModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState("signup"); 
-  const router = useRouter(); // Initialize router
+  const router = useRouter();
 
   const currentLoading = authLoading || isSubmitting;
 
@@ -68,25 +68,19 @@ export function OnboardingAuthModal({ onLoginSuccess, onClose }: OnboardingAuthM
 
   const handleGoogleLogin = async () => {
     setIsSubmitting(true);
-    // Placeholder for actual Google Sign-In
-    // try {
-    //   await signInWithGoogle(); // Assuming signInWithGoogle is in AuthContext
-    //   toast({ title: "Google Sign-In Successful" });
-    //   onLoginSuccess();
-    // } catch (error: any) {
-    //   toast({ title: "Google Sign-In Failed", description: error.message || "Could not sign in with Google.", variant: "destructive" });
-    // } finally {
-    //   setIsSubmitting(false);
-    // }
-    await new Promise(resolve => setTimeout(resolve, 700)); // Mock delay
-    toast({ title: "Google Login (Not Implemented)", description: "Firebase Google Sign-In to be implemented.", variant: "default" });
-    setIsSubmitting(false);
+    try {
+      await signInWithGoogle(); 
+      toast({ title: "Google Sign-In Successful", description: "Welcome!" });
+      onLoginSuccess();
+    } catch (error: any) {
+      toast({ title: "Google Sign-In Failed", description: error.message || "Could not sign in with Google.", variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleGuestLoginSuccess = (phoneNumber: string) => {
     setIsGuestModalOpen(false);
-    // For guest login, we don't call onLoginSuccess (which implies Firebase auth)
-    // Instead, we directly navigate.
     router.push('/downloads'); 
   };
   
@@ -131,7 +125,7 @@ export function OnboardingAuthModal({ onLoginSuccess, onClose }: OnboardingAuthM
                   />
                 </div>
                 <Button type="submit" disabled={currentLoading} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
-                  {currentLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
+                  {currentLoading && activeTab === "signup" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
                   {currentLoading && activeTab === "signup" ? "Creating Account..." : "Create Account"}
                 </Button>
               </form>
@@ -164,7 +158,7 @@ export function OnboardingAuthModal({ onLoginSuccess, onClose }: OnboardingAuthM
                   />
                 </div>
                 <Button type="submit" disabled={currentLoading} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
-                  {currentLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogIn className="mr-2 h-4 w-4" />}
+                  {currentLoading && activeTab === "login" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogIn className="mr-2 h-4 w-4" />}
                   {currentLoading && activeTab === "login" ? "Logging In..." : "Login"}
                 </Button>
               </form>
@@ -182,10 +176,10 @@ export function OnboardingAuthModal({ onLoginSuccess, onClose }: OnboardingAuthM
                 </div>
               </div>
               <Button onClick={handleGoogleLogin} variant="outline" className="w-full mt-4" disabled={currentLoading}>
-                {currentLoading && activeTab === "social" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 
+                {isSubmitting && !authLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 
                   <svg className="mr-2 h-4 w-4" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Google</title><path d="M12.24 10.285V14.4h6.806c-.275 1.765-2.056 5.174-6.806 5.174-4.095 0-7.439-3.386-7.439-7.574s3.345-7.574 7.439-7.574c2.33 0 3.891.989 4.785 1.85l3.254-3.138C18.189 1.186 15.479 0 12.24 0 5.48 0 0 5.48 0 12s5.48 12 12.24 12c7.27 0 11.99-4.916 11.99-11.986a10.94 10.94 0 00-.186-1.729H12.24z" fill="#4285F4"/></svg>
                 }
-                Sign in with Google
+                {isSubmitting && !authLoading ? "Processing..." : "Sign in with Google"}
               </Button> 
               
               <Button onClick={() => setIsGuestModalOpen(true)} variant="secondary" className="w-full mt-2" disabled={currentLoading}>
