@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
-import { Loader2, ShieldAlert, LayoutDashboard, UploadCloud, Send, PackagePlus, ListOrdered, Image as ImageIcon, Edit3, Trash2, Shapes, FolderPlus, ListChecks } from 'lucide-react';
+import { Loader2, ShieldAlert, LayoutDashboard, UploadCloud, Send, PackagePlus, ListOrdered, Image as ImageIcon, Edit3, Trash2, Shapes, FolderPlus, ListChecks, ClipboardList, Download } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,8 +19,9 @@ import { useToast } from '@/hooks/use-toast';
 import { db, storage } from '@/lib/firebase';
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { collection, addDoc, serverTimestamp, query, getDocs, orderBy, doc, setDoc } from 'firebase/firestore';
-import type { Product, Category } from '@/lib/types';
+import type { Product, Category, SharedFile } from '@/lib/types';
 import Image from 'next/image';
+import Link from 'next/link';
 import {
   Table,
   TableBody,
@@ -116,6 +117,9 @@ export default function AdminPage() {
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   const [isSubmittingCategory, setIsSubmittingCategory] = useState(false);
 
+  const [sharedFiles, setSharedFiles] = useState<SharedFile[]>([]);
+  const [isLoadingSharedFiles, setIsLoadingSharedFiles] = useState(true);
+
 
   const {
     register: registerSharedFile,
@@ -182,10 +186,38 @@ export default function AdminPage() {
     setIsLoadingCategories(false);
   };
 
+  const fetchSharedFiles = async () => {
+    setIsLoadingSharedFiles(true);
+    try {
+      const filesCollectionRef = collection(db, "sharedFiles");
+      const q = query(filesCollectionRef, orderBy("uploadedAt", "desc"));
+      const querySnapshot = await getDocs(q);
+      const fetchedFiles: SharedFile[] = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        let uploadedAtDisplay = 'N/A';
+        if (data.uploadedAt && data.uploadedAt.toDate) {
+            uploadedAtDisplay = data.uploadedAt.toDate().toLocaleDateString();
+        } else if (data.uploadedAt && typeof data.uploadedAt === 'string') {
+            uploadedAtDisplay = new Date(data.uploadedAt).toLocaleDateString();
+        } else if (data.uploadedAt && typeof data.uploadedAt === 'number') { // Assuming timestamp number
+            uploadedAtDisplay = new Date(data.uploadedAt).toLocaleDateString();
+        }
+        fetchedFiles.push({ id: doc.id, ...data, uploadedAt: uploadedAtDisplay } as SharedFile);
+      });
+      setSharedFiles(fetchedFiles);
+    } catch (error) {
+      console.error("Error fetching shared files:", error);
+      toast({ title: "Error", description: "Could not fetch shared files.", variant: "destructive" });
+    }
+    setIsLoadingSharedFiles(false);
+  };
+
   useEffect(() => {
     if (user && user.isAdmin) {
       fetchProducts();
       fetchCategories();
+      fetchSharedFiles();
     }
   }, [user]);
 
@@ -206,8 +238,6 @@ export default function AdminPage() {
       return;
     }
     
-    console.log("Shared File Upload: Attempting as user:", user.uid, " isAdmin status (from AuthContext):", user.isAdmin);
-
     if (!user.isAdmin) {
       toast({ title: "Unauthorized", description: "You do not have permission to perform this action.", variant: "destructive" });
       return;
@@ -234,6 +264,7 @@ export default function AdminPage() {
       });
       toast({ title: "File Uploaded Successfully", description: `${fileToUpload.name} has been uploaded for ${data.phoneNumber}.` });
       resetSharedFileForm();
+      fetchSharedFiles(); // Refresh the list of shared files
 
     } catch (error: any) {
       console.error("Error uploading shared file to Firebase Storage:", error);
@@ -268,9 +299,7 @@ export default function AdminPage() {
       toast({ title: "Unauthorized", description: "You must be logged in.", variant: "destructive" });
       return;
     }
-    
-    console.log("Product Submit: Attempting as user:", user.uid, " isAdmin status (from AuthContext):", user.isAdmin);
-    
+        
     if (!user.isAdmin) {
       toast({ title: "Unauthorized", description: "You do not have permission to add products.", variant: "destructive" });
       return;
@@ -336,8 +365,6 @@ export default function AdminPage() {
       return;
     }
     
-    console.log("Category Submit: Attempting as user:", user.uid, " isAdmin status (from AuthContext):", user.isAdmin);
-
     if (!user.isAdmin) {
       toast({ title: "Unauthorized", description: "You do not have permission to manage categories.", variant: "destructive" });
       return;
@@ -697,6 +724,66 @@ export default function AdminPage() {
           <Card className="shadow-xl">
             <CardHeader>
               <div className="flex items-center space-x-3">
+                <ClipboardList className="h-8 w-8 text-primary" />
+                <CardTitle className="text-2xl font-bold font-headline text-primary">Manage Shared Files</CardTitle>
+              </div>
+              <CardDescription className="font-body text-muted-foreground pt-2">
+                View, download, or manage files previously uploaded for users.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoadingSharedFiles ? (
+                <div className="flex justify-center items-center py-10">
+                  <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                </div>
+              ) : sharedFiles.length === 0 ? (
+                <p className="text-center text-muted-foreground py-6">No files have been shared with users yet.</p>
+              ) : (
+                <div className="overflow-x-auto rounded-lg border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>File Name</TableHead>
+                        <TableHead>Phone Number</TableHead>
+                        <TableHead>File Type</TableHead>
+                        <TableHead>Uploaded Date</TableHead>
+                        <TableHead className="text-center w-[180px]">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {sharedFiles.map((file) => (
+                        <TableRow key={file.id}>
+                          <TableCell className="font-medium truncate max-w-xs" title={file.originalFileName}>{file.originalFileName}</TableCell>
+                          <TableCell>{file.phoneNumber}</TableCell>
+                          <TableCell className="truncate max-w-[100px]">{file.fileType}</TableCell>
+                          <TableCell>{file.uploadedAt?.toString() || 'N/A'}</TableCell>
+                          <TableCell className="text-center">
+                            <div className="flex justify-center items-center gap-2">
+                              <Button asChild variant="outline" size="sm" className="h-8">
+                                <a href={file.downloadURL} target="_blank" rel="noopener noreferrer" download={file.originalFileName}>
+                                  <Download className="mr-1.5 h-3.5 w-3.5" /> Download
+                                </a>
+                              </Button>
+                              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => toast({title: "Edit File (Not Implemented)", description: `Would edit ${file.originalFileName}`})}>
+                                <Edit3 className="h-4 w-4" />
+                              </Button>
+                              <Button variant="destructive" size="icon" className="h-8 w-8" onClick={() => toast({title: "Delete File (Not Implemented)", description: `Would delete ${file.originalFileName}`, variant: "destructive"})}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-xl">
+            <CardHeader>
+              <div className="flex items-center space-x-3">
                 <UploadCloud className="h-8 w-8 text-primary" />
                 <CardTitle className="text-2xl font-bold font-headline text-primary">Upload File for User</CardTitle>
               </div>
@@ -746,3 +833,4 @@ export default function AdminPage() {
     </div>
   );
 }
+
