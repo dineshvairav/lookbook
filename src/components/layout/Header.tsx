@@ -67,7 +67,7 @@ export function Header() {
                 <Menu className="h-6 w-6" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-[300px] sm:w-[360px] p-0 flex flex-col bg-background">
+            <SheetContent side="right" className="w-[300px] sm:w-[360px] p-0 flex flex-col bg-background">
               <SheetHeader className="p-4 border-b border-border/40 text-left">
                 <div className="flex justify-between items-center">
                   <SheetTitle>
