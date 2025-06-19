@@ -26,7 +26,7 @@ export function AuthDialog() {
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [activeTab, setActiveTab] = useState("login");
+  const [activeTab, setActiveTab] = useState("login"); // Default to login
 
   const currentLoading = authLoading || isSubmitting;
 
@@ -76,7 +76,7 @@ export function AuthDialog() {
       if (!isOpen) { // Reset fields when dialog closes
         setEmail("");
         setPassword("");
-        setActiveTab("login");
+        setActiveTab("login"); // Reset to login tab
       }
     }}>
       <DialogTrigger asChild>
@@ -94,7 +94,7 @@ export function AuthDialog() {
           </DialogDescription>
         </DialogHeader>
         
-        <Tabs defaultValue="login" value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs defaultValue="login" value={activeTab} onValueChange={setActiveTab} className="w-full"> {/* Default to login */}
           <TabsList className="grid w-full grid-cols-2 mb-6">
             <TabsTrigger value="login">Login</TabsTrigger>
             <TabsTrigger value="signup">Sign Up</TabsTrigger>
