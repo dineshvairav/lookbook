@@ -80,12 +80,13 @@ export default function LandingPage() {
       </div>
       
       <div className="relative z-10 space-y-8 max-w-2xl">
-        <div className="flex justify-center mb-4 animate-fade-in-down">
+        <div className="relative flex justify-center mb-4 animate-fade-in-down logo-container-with-glow">
           <Image
             src="/logo.png" 
-            alt="Lookbook App Logo"
+            alt="Lookbook Logo"
             width={150}
             height={50}
+            className="relative z-10" 
           />
         </div>
         <h1 className="text-6xl md:text-7xl font-bold font-headline text-primary animate-fade-in-down text-center">
@@ -127,6 +128,40 @@ export default function LandingPage() {
         .animate-fade-in-up { animation: fade-in-up 0.5s ease-out forwards; }
         .delay-200 { animation-delay: 0.2s; }
         .delay-400 { animation-delay: 0.4s; }
+
+        .logo-container-with-glow {
+          position: relative; /* For ::before positioning */
+        }
+        .logo-container-with-glow::before {
+          content: '';
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          transform: translate(-50%, -50%);
+          width: 220px; /* Adjust size as needed, larger than logo */
+          height: 120px; /* Adjust size, can be elliptical */
+          background: conic-gradient(
+            from 0deg,
+            hsl(var(--primary) / 0.6),
+            hsl(var(--accent) / 0.6),
+            hsl(var(--secondary) / 0.4),
+            hsl(var(--primary) / 0.6)
+          );
+          border-radius: 50%; /* Can be adjusted for more elliptical shape */
+          filter: blur(35px); /* Adjust blur amount for glow intensity */
+          animation: rotateGlow 12s linear infinite;
+          z-index: 0; /* Behind the logo image */
+          opacity: 0.7; /* Adjust overall glow visibility */
+        }
+
+        @keyframes rotateGlow {
+          0% {
+            transform: translate(-50%, -50%) rotate(0deg);
+          }
+          100% {
+            transform: translate(-50%, -50%) rotate(360deg);
+          }
+        }
       `}</style>
     </main>
   );
