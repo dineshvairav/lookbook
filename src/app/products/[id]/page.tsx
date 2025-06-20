@@ -27,7 +27,6 @@ const serializeDateSafely = (dateValue: unknown): string | undefined => {
   if (dateValue instanceof Date) {
     return dateValue.toISOString();
   }
-  // Check for Firestore Timestamp-like object (has toDate method)
   if (dateValue && typeof (dateValue as Timestamp).toDate === 'function') {
     try {
       return (dateValue as Timestamp).toDate().toISOString();
@@ -36,11 +35,10 @@ const serializeDateSafely = (dateValue: unknown): string | undefined => {
       return undefined;
     }
   }
-  // Handle if it's already a string (try to parse and re-format)
   if (typeof dateValue === 'string') {
     try {
       const d = new Date(dateValue);
-      if (!isNaN(d.getTime())) { // Check if date is valid
+      if (!isNaN(d.getTime())) {
         return d.toISOString();
       }
       return undefined; 
@@ -48,7 +46,6 @@ const serializeDateSafely = (dateValue: unknown): string | undefined => {
       return undefined;
     }
   }
-  // Handle if it's a number (Unix timestamp in milliseconds)
   if (typeof dateValue === 'number') {
     try {
       const d = new Date(dateValue);
