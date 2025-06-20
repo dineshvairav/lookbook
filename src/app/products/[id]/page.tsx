@@ -1,6 +1,6 @@
 
 import { getProductById, fetchProductsFromFirestore } from "@/lib/data";
-import type { Product } from "@/lib/types";
+import type { Product, ProductPageProps } from "@/lib/types";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Badge } from "@/components/ui/badge";
@@ -59,12 +59,8 @@ const serializeDateSafely = (dateValue: unknown): string | undefined => {
   }
   return undefined;
 };
-type Props = {
-  params: {
-    id: string;
-  };
-};
-export default async function ProductPage({ params }: Props) {
+
+export default async function ProductPage({ params }: ProductPageProps) {
   const productData = await getProductById(params.id);
 
   if (!productData) {

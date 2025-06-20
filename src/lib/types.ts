@@ -49,3 +49,9 @@ export interface SharedFile {
   uploadedAt: any; // Firebase Timestamp // Allow any for display purposes, actual type is Timestamp
   uploadedBy: string; // UID of admin
 }
+
+export interface ProductPageProps {
+  params: {
+    id: string;
+  };
+}
