@@ -28,31 +28,24 @@ const serializeDateSafely = (dateValue: unknown): string | undefined => {
     return dateValue.toISOString();
   }
   // Check if it's a Firestore Timestamp-like object (has toDate method)
-  if (typeof (dateValue as Timestamp).toDate === 'function') {
+  if (dateValue && typeof (dateValue as any).toDate === 'function') {
     return (dateValue as Timestamp).toDate().toISOString();
   }
   // If it's already a string (e.g., if data source changes or for some reason it's pre-serialized)
   if (typeof dateValue === 'string') {
-    try {
-      // Attempt to parse and re-serialize to ensure it's a valid ISO string, or just return
-      // For simplicity, we'll just return it if it's already a string.
-      // new Date(dateValue).toISOString(); 
-      return dateValue;
-    } catch (e) {
-      // console.warn("String date format is not a valid ISO string:", dateValue, e);
-      return undefined;
-    }
+    // We assume if it's a string, it's already correctly formatted or intended to be a string.
+    // Trying to parse it with `new Date()` might throw an error if it's not a valid date string.
+    return dateValue;
   }
-  // console.warn("Unserializable date encountered:", dateValue);
-  return undefined; // Or throw an error, or return String(dateValue) as a fallback
+  return undefined;
 };
 
-
-export default async function ProductPage({
-  params,
-}: {
+type ProductPageProps = {
   params: { id: string };
-}) {
+  // searchParams?: { [key: string]: string | string[] | undefined }; // Standard for App Router
+};
+
+export default async function ProductPage({ params }: ProductPageProps): Promise<JSX.Element> {
   const productData = await getProductById(params.id);
 
   if (!productData) {
@@ -72,13 +65,12 @@ export default async function ProductPage({
   }
 
   // Create a version of the product with dates serialized for client components
-  // Ensure productData is not null before spreading
   const productForClient: Product = {
     ...productData,
-    createdAt: serializeDateSafely(productData.createdAt) as any, // Cast as any to satisfy Product type temporarily
-    updatedAt: serializeDateSafely(productData.updatedAt) as any, // Cast as any to satisfy Product type temporarily
+    // Cast as 'any' to satisfy Product type if it expects Timestamp, client components handle strings.
+    createdAt: serializeDateSafely(productData.createdAt) as any, 
+    updatedAt: serializeDateSafely(productData.updatedAt) as any,
   };
-  // We cast to 'Product' for prop compatibility. Client components should handle string dates.
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
