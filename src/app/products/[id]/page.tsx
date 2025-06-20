@@ -28,24 +28,30 @@ const serializeDateSafely = (dateValue: unknown): string | undefined => {
     return dateValue.toISOString();
   }
   // Check if it's a Firestore Timestamp-like object (has toDate method)
-  if (dateValue && typeof (dateValue as any).toDate === 'function') {
+  if (dateValue && typeof (dateValue as Timestamp).toDate === 'function') {
     return (dateValue as Timestamp).toDate().toISOString();
   }
-  // If it's already a string (e.g., if data source changes or for some reason it's pre-serialized)
+  // If it's already a string, try to parse and re-format to ensure ISO standard.
+  // If it's not a valid date string, new Date() might return "Invalid Date",
+  // and toISOString() on that would throw.
   if (typeof dateValue === 'string') {
-    // We assume if it's a string, it's already correctly formatted or intended to be a string.
-    // Trying to parse it with `new Date()` might throw an error if it's not a valid date string.
-    return dateValue;
+    try {
+      const d = new Date(dateValue);
+      // Check if the date is valid before calling toISOString
+      if (!isNaN(d.getTime())) {
+        return d.toISOString();
+      }
+      return undefined; // Or return original string if preferred for invalid date strings
+    } catch (e) {
+      // Catch errors from new Date(invalidString) or toISOString()
+      return undefined;
+    }
   }
   return undefined;
 };
 
-type ProductPageProps = {
-  params: { id: string };
-  // searchParams?: { [key: string]: string | string[] | undefined }; // Standard for App Router
-};
-
-export default async function ProductPage({ params }: ProductPageProps): Promise<any> {
+// Using the standard Next.js App Router page props signature
+export default async function ProductPage({ params }: { params: { id: string } }) {
   const productData = await getProductById(params.id);
 
   if (!productData) {
@@ -67,8 +73,9 @@ export default async function ProductPage({ params }: ProductPageProps): Promise
   // Create a version of the product with dates serialized for client components
   const productForClient: Product = {
     ...productData,
-    // Cast as 'any' to satisfy Product type if it expects Timestamp, client components handle strings.
-    createdAt: serializeDateSafely(productData.createdAt) as any, 
+    // Explicitly cast to 'any' then to 'string | undefined' to satisfy Product type
+    // while ensuring serializable data for client components.
+    createdAt: serializeDateSafely(productData.createdAt) as any,
     updatedAt: serializeDateSafely(productData.updatedAt) as any,
   };
 
@@ -86,19 +93,19 @@ export default async function ProductPage({ params }: ProductPageProps): Promise
         </div>
         <div className="grid md:grid-cols-2 gap-8 lg:gap-12 items-start">
           <ProductImageGallery images={productData.images || [productData.imageUrl]} altText={productData.name} />
-          
+
           <div className="space-y-6">
             <div className="flex justify-between items-start">
               <h1 className="text-4xl lg:text-5xl font-bold font-headline text-primary">{productData.name}</h1>
               {/* Pass the client-safe product object to client components */}
               <WishlistButton product={productForClient} size="default" className="mt-1" />
             </div>
-            
+
             <Badge variant="secondary" className="text-sm font-body">{productData.category}</Badge>
-            
+
             {/* Pass the client-safe product object to client components */}
             <ProductPricing product={productForClient} />
-            
+
             <div className="prose prose-lg dark:prose-invert max-w-none font-body text-foreground/90">
               <h2 className="font-headline text-xl">Description</h2>
               <p>{productData.description}</p>
@@ -114,11 +121,11 @@ export default async function ProductPage({ params }: ProductPageProps): Promise
                 </ul>
               </div>
             )}
-            
-            <ShareToWhatsAppButton 
-              productName={productData.name} 
-              productId={productData.id} 
-              className="w-full sm:w-auto" 
+
+            <ShareToWhatsAppButton
+              productName={productData.name}
+              productId={productData.id}
+              className="w-full sm:w-auto"
             />
 
             <AIDescriptionGenerator
