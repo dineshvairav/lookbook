@@ -15,19 +15,19 @@ const slidesContent = [
   {
     title: "Welcome to Lookbook!",
     description: "Discover unique styles and the latest trends, curated just for you.",
-    image: "https://placehold.co/600x400.png",
+    image: "/home_1.png",
     aiHint: "fashion editorial"
   },
   {
     title: "Personalized For You",
     description: "Find what you love with recommendations tailored to your taste.",
-    image: "https://placehold.co/600x400.png",
+    image: "/home_2.png",
     aiHint: "style moodboard"
   },
   {
     title: "Join Our Community",
     description: "Get started now to explore exclusive collections and connect with fellow fashion enthusiasts.",
-    image: "https://placehold.co/600x400.png",
+    image: "/home_3.png",
     aiHint: "fashion community"
   },
 ];

@@ -69,7 +69,7 @@ export default function LandingPage() {
     <main className="min-h-screen flex flex-col items-center justify-center p-8 bg-gradient-to-br from-primary/20 via-background to-accent/20 text-center relative overflow-hidden">
       <div className="absolute inset-0">
         <Image
-          src="https://placehold.co/1920x1080.png"
+          src="/home_1.png"
           alt="Abstract fashion-themed background montage"
           layout="fill"
           objectFit="cover"
