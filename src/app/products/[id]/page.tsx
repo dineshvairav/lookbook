@@ -13,9 +13,7 @@ import { ProductImageGallery } from "@/components/product/ProductImageGallery";
 import { ShareToWhatsAppButton } from "@/components/product/ShareToWhatsAppButton";
 import { ProductPricing } from "@/components/product/ProductPricing";
 
-interface ProductPageProps {
-  params: { id: string };
-}
+
 
 export async function generateStaticParams() {
   // Fetch products from Firestore to generate static params
@@ -26,8 +24,9 @@ export async function generateStaticParams() {
 }
 
 
-export default async function ProductPage({ params }: ProductPageProps) {
+export default async function ProductPage({ params }: any) {
   // Fetch product from Firestore using the updated getProductById
+  const { id } = params;
   const product = await getProductById(params.id);
 
   if (!product) {
