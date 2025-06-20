@@ -2,16 +2,9 @@
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
-  /* config options here */
-  typescript: {
-    ignoreBuildErrors: true, 
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  assetPrefix: '',
-  basePath: '',
+  output: 'export', // Critical for GitHub Pages static export
   images: {
+    unoptimized: true, // Required for static export with next/image
     remotePatterns: [
       {
         protocol: 'https',
@@ -33,6 +26,14 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  typescript: {
+    ignoreBuildErrors: true, 
+  },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  assetPrefix: '', // Keep empty, actions/configure-pages can handle if needed or adjust if deploying to subpath
+  basePath: '',    // Keep empty, actions/configure-pages can handle if needed or adjust if deploying to subpath
 };
 
 export default nextConfig;
