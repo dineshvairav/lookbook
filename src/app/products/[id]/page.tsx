@@ -45,7 +45,7 @@ type ProductPageProps = {
   // searchParams?: { [key: string]: string | string[] | undefined }; // Standard for App Router
 };
 
-export default async function ProductPage({ params }: ProductPageProps): Promise<JSX.Element> {
+export default async function ProductPage({ params }: ProductPageProps): Promise<any> {
   const productData = await getProductById(params.id);
 
   if (!productData) {
