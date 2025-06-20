@@ -46,6 +46,13 @@ export default async function ProductPage({ params }: ProductPageProps) {
     );
   }
 
+  // Create a plain, serializable object for client components
+  const productForClientProps = {
+    ...product,
+    createdAt: product.createdAt ? product.createdAt.toDate().toISOString() : undefined,
+    updatedAt: product.updatedAt ? product.updatedAt.toDate().toISOString() : undefined,
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <Header />
@@ -64,12 +71,14 @@ export default async function ProductPage({ params }: ProductPageProps) {
           <div className="space-y-6">
             <div className="flex justify-between items-start">
               <h1 className="text-4xl lg:text-5xl font-bold font-headline text-primary">{product.name}</h1>
-              <WishlistButton product={product} size="default" className="mt-1" />
+              {/* Pass the serializable version to WishlistButton */}
+              <WishlistButton product={productForClientProps as Product} size="default" className="mt-1" />
             </div>
             
             <Badge variant="secondary" className="text-sm font-body">{product.category}</Badge>
             
-            <ProductPricing product={product} />
+            {/* Pass the serializable version to ProductPricing */}
+            <ProductPricing product={productForClientProps as Product} />
             
             <div className="prose prose-lg dark:prose-invert max-w-none font-body text-foreground/90">
               <h2 className="font-headline text-xl">Description</h2>
