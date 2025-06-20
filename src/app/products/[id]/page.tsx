@@ -59,8 +59,12 @@ const serializeDateSafely = (dateValue: unknown): string | undefined => {
   }
   return undefined;
 };
-
-export default async function ProductPage({ params }: { params: { id: string } }) {
+type Props = {
+  params: {
+    id: string;
+  };
+};
+export default async function ProductPage({ params }: Props) {
   const productData = await getProductById(params.id);
 
   if (!productData) {
