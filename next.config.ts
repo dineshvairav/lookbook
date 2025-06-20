@@ -2,9 +2,9 @@
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
-  output: 'export', // Critical for GitHub Pages static export
+  // output: 'export', // Critical for GitHub Pages static export - REMOVED for Server Action support
   images: {
-    unoptimized: true, // Required for static export with next/image
+    unoptimized: true, // Required for static export with next/image, can be true or false for server build
     remotePatterns: [
       {
         protocol: 'https',
@@ -27,13 +27,13 @@ const nextConfig: NextConfig = {
     ],
   },
   typescript: {
-    ignoreBuildErrors: true, 
+    ignoreBuildErrors: true,
   },
   eslint: {
     ignoreDuringBuilds: true,
   },
-  assetPrefix: '', // Keep empty, actions/configure-pages can handle if needed or adjust if deploying to subpath
-  basePath: '',    // Keep empty, actions/configure-pages can handle if needed or adjust if deploying to subpath
+  assetPrefix: '', 
+  basePath: '',    
 };
 
 export default nextConfig;
