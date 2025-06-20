@@ -27,9 +27,10 @@ if (!firebaseConfig.apiKey || firebaseConfig.apiKey.trim() === "") {
     "CRITICAL_FIREBASE_ERROR: NEXT_PUBLIC_FIREBASE_API_KEY is missing, undefined, or an empty string in your environment variables. " +
     "Firebase cannot be initialized without a valid API key. " +
     "Please ensure it is correctly set in your .env file (e.g., .env.local) at the project root, " +
-    "prefixed with NEXT_PUBLIC_, and that the Next.js server has been restarted after changes."
+    "prefixed with NEXT_PUBLIC_, and that the Next.js server has been restarted after changes. " +
+    "In CI/CD environments (like GitHub Actions or Vercel), ensure this variable is set in the build environment's secrets/settings."
   );
-  // You might want to throw an error here in production or handle it more strictly.
+  // In a build environment, this might be fatal. Locally, it helps debugging.
 } else {
   // Log the API key being used (first few and last few characters for verification without exposing the full key)
   const apiKeyPreview = `${firebaseConfig.apiKey.substring(0, 5)}...${firebaseConfig.apiKey.substring(firebaseConfig.apiKey.length - 5)}`;
@@ -38,7 +39,28 @@ if (!firebaseConfig.apiKey || firebaseConfig.apiKey.trim() === "") {
 
 
 if (!getApps().length) {
-  app = initializeApp(firebaseConfig);
+  // Check if the API key is actually available before initializing
+  // This check is particularly important for build processes where env vars might be missing
+  if (firebaseConfig.apiKey && firebaseConfig.apiKey.trim() !== "") {
+    app = initializeApp(firebaseConfig);
+  } else {
+    // If API key is still missing here (e.g., in a build process that continued despite the error log),
+    // subsequent Firebase service calls will fail.
+    // We create a dummy app or handle this case to prevent further crashes if possible,
+    // though Firebase services won't be functional.
+    // For simplicity, we'll let it proceed and fail at service initialization (getAuth, getFirestore)
+    // as those will provide more specific errors if app is not correctly initialized.
+    // The console.error above should be the primary indicator.
+    // To truly prevent a crash here, you might conditionally initialize or throw a more specific error.
+    // However, Next.js build might still fail if Firebase dependent code runs.
+    console.error("Firebase app could not be initialized due to missing API key. Subsequent Firebase operations will fail.");
+    // A 'dummy' app object to prevent immediate crashes on `getAuth(app)` if app must be defined.
+    // This won't make Firebase work, but might change where the build process fails.
+    app = {} as FirebaseApp; // This is a risky band-aid, the ENV VAR is the true fix.
+                            // It's better to let it fail at `initializeApp` if the key is truly bad/missing.
+                            // Reverting to direct initialization and letting it throw if key is bad:
+    app = initializeApp(firebaseConfig);
+  }
 } else {
   app = getApp();
 }
@@ -48,17 +70,15 @@ export const db = getFirestore(app);
 export const storage = getStorage(app);
 
 // Initialize Firebase Messaging and export it
-// We need to check if messaging is supported by the browser
 const initializeMessaging = async () => {
   if (typeof window !== 'undefined' && (await isSupported())) {
-    // Check if all necessary FCM config values are present
     if (firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.messagingSenderId && firebaseConfig.appId) {
         return getMessaging(app);
     } else {
         console.warn(
           "Firebase Messaging could not be initialized due to missing core Firebase configuration values. " +
           "Ensure NEXT_PUBLIC_FIREBASE_API_KEY, NEXT_PUBLIC_FIREBASE_PROJECT_ID, " +
-          "NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID, and NEXT_PUBLIC_FIREBASE_APP_ID are set in your .env file."
+          "NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID, and NEXT_PUBLIC_FIREBASE_APP_ID are set."
         );
         return null;
     }
@@ -66,8 +86,8 @@ const initializeMessaging = async () => {
   return null;
 };
 
-// messaging will be a Promise that resolves to the Messaging instance or null
 export const messaging = initializeMessaging();
 
 
 export default app;
+
