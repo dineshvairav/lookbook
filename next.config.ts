@@ -3,9 +3,9 @@ import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
   /* config options here */
-  typescript: {
-    ignoreBuildErrors: true,
-  },
+  // typescript: {
+  //   ignoreBuildErrors: true, // Temporarily removed for better error diagnosis
+  // },
   eslint: {
     ignoreDuringBuilds: true,
   },

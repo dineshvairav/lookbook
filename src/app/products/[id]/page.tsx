@@ -45,7 +45,6 @@ const serializeDateSafely = (dateValue: unknown): string | undefined => {
       }
       return undefined; 
     } catch (e) {
-      // Catch errors from new Date(invalidString) or toISOString()
       return undefined;
     }
   }
@@ -64,14 +63,7 @@ const serializeDateSafely = (dateValue: unknown): string | undefined => {
   return undefined;
 };
 
-// Define local props interface for this page, aligning with Next.js App Router
-interface ProductPageProps {
-  params: { id: string };
-  // searchParams?: { [key: string]: string | string[] | undefined }; // Next.js can also pass searchParams
-}
-
-export default async function ProductPage(props: ProductPageProps) {
-  const { params } = props; // Destructure params from the typed props
+export default async function ProductPage({ params }: { params: { id: string } }) {
   const productData = await getProductById(params.id);
 
   if (!productData) {
@@ -93,8 +85,6 @@ export default async function ProductPage(props: ProductPageProps) {
   // Create a version of the product with dates serialized for client components
   const productForClient: Product = {
     ...productData,
-    // Explicitly cast to 'any' then to 'string | undefined' to satisfy Product type
-    // while ensuring serializable data for client components.
     createdAt: serializeDateSafely(productData.createdAt) as any,
     updatedAt: serializeDateSafely(productData.updatedAt) as any,
   };
@@ -117,13 +107,11 @@ export default async function ProductPage(props: ProductPageProps) {
           <div className="space-y-6">
             <div className="flex justify-between items-start">
               <h1 className="text-4xl lg:text-5xl font-bold font-headline text-primary">{productData.name}</h1>
-              {/* Pass the client-safe product object to client components */}
               <WishlistButton product={productForClient} size="default" className="mt-1" />
             </div>
 
             <Badge variant="secondary" className="text-sm font-body">{productData.category}</Badge>
 
-            {/* Pass the client-safe product object to client components */}
             <ProductPricing product={productForClient} />
 
             <div className="prose prose-lg dark:prose-invert max-w-none font-body text-foreground/90">
