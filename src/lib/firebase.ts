@@ -24,10 +24,8 @@ let app: FirebaseApp;
 // Critical check and log for the API key
 if (!firebaseConfig.apiKey || firebaseConfig.apiKey.trim() === "") {
   console.error(
-    "CRITICAL_FIREBASE_ERROR: NEXT_PUBLIC_FIREBASE_API_KEY is missing, undefined, or an empty string in your environment variables. " +
-    "Firebase cannot be initialized without a valid API key. " +
-    "Please ensure it is correctly set in your .env file (e.g., .env.local) at the project root, " +
-    "prefixed with NEXT_PUBLIC_, and that the Next.js server has been restarted after changes."
+    "CRITICAL_FIREBASE_ERROR: NEXT_PUBLIC_FIREBASE_API_KEY is missing or invalid. " +
+    "Ensure it's correctly set in your environment variables (e.g., .env or GitHub Secrets) and prefixed with NEXT_PUBLIC_."
   );
   // You might want to throw an error here in production or handle it more strictly.
 } else {
