@@ -21,6 +21,33 @@ export async function generateStaticParams(): Promise<{ id: string }[]> {
   }));
 }
 
+// Helper function to safely serialize Firestore Timestamps or JS Dates
+const serializeDateSafely = (dateValue: unknown): string | undefined => {
+  if (!dateValue) return undefined;
+  if (dateValue instanceof Date) { // Handles if it's already a JS Date
+    return dateValue.toISOString();
+  }
+  // Check if it's a Firestore Timestamp-like object (has toDate method)
+  if (typeof (dateValue as Timestamp).toDate === 'function') {
+    return (dateValue as Timestamp).toDate().toISOString();
+  }
+  // If it's already a string (e.g., if data source changes or for some reason it's pre-serialized)
+  if (typeof dateValue === 'string') {
+    try {
+      // Attempt to parse and re-serialize to ensure it's a valid ISO string, or just return
+      // For simplicity, we'll just return it if it's already a string.
+      // new Date(dateValue).toISOString(); 
+      return dateValue;
+    } catch (e) {
+      // console.warn("String date format is not a valid ISO string:", dateValue, e);
+      return undefined;
+    }
+  }
+  // console.warn("Unserializable date encountered:", dateValue);
+  return undefined; // Or throw an error, or return String(dateValue) as a fallback
+};
+
+
 export default async function ProductPage({
   params,
 }: {
@@ -45,15 +72,13 @@ export default async function ProductPage({
   }
 
   // Create a version of the product with dates serialized for client components
-  const productForClient: Omit<Product, "createdAt" | "updatedAt"> & { createdAt?: string; updatedAt?: string } = {
+  // Ensure productData is not null before spreading
+  const productForClient: Product = {
     ...productData,
-    createdAt: productData.createdAt instanceof Date 
-      ? productData.createdAt.toISOString() 
-      : (productData.createdAt as Timestamp | undefined)?.toDate().toISOString(),
-    updatedAt: productData.updatedAt instanceof Date
-      ? productData.updatedAt.toISOString()
-      :(productData.updatedAt as Timestamp | undefined)?.toDate().toISOString(),
+    createdAt: serializeDateSafely(productData.createdAt) as any, // Cast as any to satisfy Product type temporarily
+    updatedAt: serializeDateSafely(productData.updatedAt) as any, // Cast as any to satisfy Product type temporarily
   };
+  // We cast to 'Product' for prop compatibility. Client components should handle string dates.
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -74,13 +99,13 @@ export default async function ProductPage({
             <div className="flex justify-between items-start">
               <h1 className="text-4xl lg:text-5xl font-bold font-headline text-primary">{productData.name}</h1>
               {/* Pass the client-safe product object to client components */}
-              <WishlistButton product={productForClient as Product} size="default" className="mt-1" />
+              <WishlistButton product={productForClient} size="default" className="mt-1" />
             </div>
             
             <Badge variant="secondary" className="text-sm font-body">{productData.category}</Badge>
             
             {/* Pass the client-safe product object to client components */}
-            <ProductPricing product={productForClient as Product} />
+            <ProductPricing product={productForClient} />
             
             <div className="prose prose-lg dark:prose-invert max-w-none font-body text-foreground/90">
               <h2 className="font-headline text-xl">Description</h2>
