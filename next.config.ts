@@ -4,7 +4,7 @@ import type {NextConfig} from 'next';
 const nextConfig: NextConfig = {
   // output: 'export', // Critical for GitHub Pages static export - REMOVED for Server Action support
   images: {
-    unoptimized: true, // Required for static export with next/image, can be true or false for server build
+    unoptimized: false, // Required for static export with next/image, can be true or false for server build
     remotePatterns: [
       {
         protocol: 'https',
