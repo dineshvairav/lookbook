@@ -21,37 +21,57 @@ export async function generateStaticParams(): Promise<{ id: string }[]> {
   }));
 }
 
-// Helper function to safely serialize Firestore Timestamps or JS Dates
+// Helper function to safely serialize Firestore Timestamps, JS Dates, strings, or numbers
 const serializeDateSafely = (dateValue: unknown): string | undefined => {
   if (!dateValue) return undefined;
-  if (dateValue instanceof Date) { // Handles if it's already a JS Date
+  if (dateValue instanceof Date) {
     return dateValue.toISOString();
   }
-  // Check if it's a Firestore Timestamp-like object (has toDate method)
+  // Check for Firestore Timestamp-like object (has toDate method)
   if (dateValue && typeof (dateValue as Timestamp).toDate === 'function') {
-    return (dateValue as Timestamp).toDate().toISOString();
+    try {
+      return (dateValue as Timestamp).toDate().toISOString();
+    } catch (e) {
+      console.error("Error converting Firestore Timestamp to ISOString:", e);
+      return undefined;
+    }
   }
-  // If it's already a string, try to parse and re-format to ensure ISO standard.
-  // If it's not a valid date string, new Date() might return "Invalid Date",
-  // and toISOString() on that would throw.
+  // Handle if it's already a string (try to parse and re-format)
   if (typeof dateValue === 'string') {
     try {
       const d = new Date(dateValue);
-      // Check if the date is valid before calling toISOString
+      if (!isNaN(d.getTime())) { // Check if date is valid
+        return d.toISOString();
+      }
+      return undefined; 
+    } catch (e) {
+      // Catch errors from new Date(invalidString) or toISOString()
+      return undefined;
+    }
+  }
+  // Handle if it's a number (Unix timestamp in milliseconds)
+  if (typeof dateValue === 'number') {
+    try {
+      const d = new Date(dateValue);
       if (!isNaN(d.getTime())) {
         return d.toISOString();
       }
-      return undefined; // Or return original string if preferred for invalid date strings
+      return undefined;
     } catch (e) {
-      // Catch errors from new Date(invalidString) or toISOString()
       return undefined;
     }
   }
   return undefined;
 };
 
-// Using the standard Next.js App Router page props signature
-export default async function ProductPage({ params }: { params: { id: string } }) {
+// Define local props interface for this page, aligning with Next.js App Router
+interface ProductPageProps {
+  params: { id: string };
+  // searchParams?: { [key: string]: string | string[] | undefined }; // Next.js can also pass searchParams
+}
+
+export default async function ProductPage(props: ProductPageProps) {
+  const { params } = props; // Destructure params from the typed props
   const productData = await getProductById(params.id);
 
   if (!productData) {
