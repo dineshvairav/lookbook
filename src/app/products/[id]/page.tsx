@@ -1,6 +1,6 @@
 
 import { getProductById, fetchProductsFromFirestore } from "@/lib/data";
-import type { Product, ProductPageProps } from "@/lib/types";
+import type { Product } from "@/lib/types";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +14,7 @@ import { ShareToWhatsAppButton } from "@/components/product/ShareToWhatsAppButto
 import { ProductPricing } from "@/components/product/ProductPricing";
 import type { Timestamp } from "firebase/firestore";
 
-export async function generateStaticParams(): Promise<{ id: string }[]> {
+export async function generateStaticParams() {
   const products = await fetchProductsFromFirestore();
   return products.map((product) => ({
     id: product.id,
@@ -27,25 +27,29 @@ const serializeDateSafely = (dateValue: unknown): string | undefined => {
   if (dateValue instanceof Date) {
     return dateValue.toISOString();
   }
+  // Check for Firestore Timestamp-like structure (duck-typing)
   if (dateValue && typeof (dateValue as Timestamp).toDate === 'function') {
     try {
       return (dateValue as Timestamp).toDate().toISOString();
     } catch (e) {
-      console.error("Error converting Firestore Timestamp to ISOString:", e);
+      // console.error("Error converting Firestore Timestamp to ISOString:", e);
       return undefined;
     }
   }
+  // Handle if it's already a string (e.g., from previous serialization or direct string date)
   if (typeof dateValue === 'string') {
     try {
       const d = new Date(dateValue);
+      // Check if the date is valid
       if (!isNaN(d.getTime())) {
         return d.toISOString();
       }
-      return undefined; 
+      return undefined; // Invalid date string
     } catch (e) {
-      return undefined;
+      return undefined; // Error parsing string
     }
   }
+  // Handle if it's a number (timestamp in milliseconds)
   if (typeof dateValue === 'number') {
     try {
       const d = new Date(dateValue);
@@ -57,10 +61,12 @@ const serializeDateSafely = (dateValue: unknown): string | undefined => {
       return undefined;
     }
   }
+  // console.warn("serializeDateSafely: Unhandled date type", typeof dateValue, dateValue);
   return undefined;
 };
 
-export default async function ProductPage({ params }: ProductPageProps) {
+// Use standard inline prop typing for Next.js App Router pages
+export default async function ProductPage({ params }: { params: { id: string } }) {
   const productData = await getProductById(params.id);
 
   if (!productData) {
@@ -82,7 +88,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
   // Create a version of the product with dates serialized for client components
   const productForClient: Product = {
     ...productData,
-    createdAt: serializeDateSafely(productData.createdAt) as any,
+    createdAt: serializeDateSafely(productData.createdAt) as any, 
     updatedAt: serializeDateSafely(productData.updatedAt) as any,
   };
 
