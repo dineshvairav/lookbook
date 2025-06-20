@@ -1,39 +1,34 @@
 
-import { getProductById, fetchProductsFromFirestore } from "@/lib/data"; 
+import { getProductById, fetchProductsFromFirestore } from "@/lib/data";
 import type { Product } from "@/lib/types";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Badge } from "@/components/ui/badge";
 import { AIDescriptionGenerator } from "@/components/product/AIDescriptionGenerator";
-import { WishlistButton } from "@/components/product/WishlistButton"; 
+import { WishlistButton } from "@/components/product/WishlistButton";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { ProductImageGallery } from "@/components/product/ProductImageGallery";
 import { ShareToWhatsAppButton } from "@/components/product/ShareToWhatsAppButton";
 import { ProductPricing } from "@/components/product/ProductPricing";
+import type { Timestamp } from "firebase/firestore";
 
-interface ProductPageProps {
-  params: {
-    id: string;
-  };
-  searchParams: { [key: string]: string | string[] | undefined };
-}
-
-export async function generateStaticParams() {
-  // Fetch products from Firestore to generate static params
-  const products = await fetchProductsFromFirestore(); 
+export async function generateStaticParams(): Promise<{ id: string }[]> {
+  const products = await fetchProductsFromFirestore();
   return products.map((product) => ({
     id: product.id,
   }));
 }
 
+export default async function ProductPage({
+  params,
+}: {
+  params: { id: string };
+}) {
+  const productData = await getProductById(params.id);
 
-export default async function ProductPage({ params, searchParams }: ProductPageProps) {
-  // Fetch product from Firestore using the updated getProductById
-  const product = await getProductById(params.id);
-
-  if (!product) {
+  if (!productData) {
     return (
       <div className="flex flex-col min-h-screen">
         <Header />
@@ -49,11 +44,15 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
     );
   }
 
-  // Create a plain, serializable object for client components
-  const productForClientProps = {
-    ...product,
-    createdAt: product.createdAt ? product.createdAt.toDate().toISOString() : undefined,
-    updatedAt: product.updatedAt ? product.updatedAt.toDate().toISOString() : undefined,
+  // Create a version of the product with dates serialized for client components
+  const productForClient: Omit<Product, "createdAt" | "updatedAt"> & { createdAt?: string; updatedAt?: string } = {
+    ...productData,
+    createdAt: productData.createdAt instanceof Date 
+      ? productData.createdAt.toISOString() 
+      : (productData.createdAt as Timestamp | undefined)?.toDate().toISOString(),
+    updatedAt: productData.updatedAt instanceof Date
+      ? productData.updatedAt.toISOString()
+      :(productData.updatedAt as Timestamp | undefined)?.toDate().toISOString(),
   };
 
   return (
@@ -69,30 +68,30 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
           </Button>
         </div>
         <div className="grid md:grid-cols-2 gap-8 lg:gap-12 items-start">
-          <ProductImageGallery images={product.images || [product.imageUrl]} altText={product.name} />
+          <ProductImageGallery images={productData.images || [productData.imageUrl]} altText={productData.name} />
           
           <div className="space-y-6">
             <div className="flex justify-between items-start">
-              <h1 className="text-4xl lg:text-5xl font-bold font-headline text-primary">{product.name}</h1>
-              {/* Pass the serializable version to WishlistButton */}
-              <WishlistButton product={productForClientProps as Product} size="default" className="mt-1" />
+              <h1 className="text-4xl lg:text-5xl font-bold font-headline text-primary">{productData.name}</h1>
+              {/* Pass the client-safe product object to client components */}
+              <WishlistButton product={productForClient as Product} size="default" className="mt-1" />
             </div>
             
-            <Badge variant="secondary" className="text-sm font-body">{product.category}</Badge>
+            <Badge variant="secondary" className="text-sm font-body">{productData.category}</Badge>
             
-            {/* Pass the serializable version to ProductPricing */}
-            <ProductPricing product={productForClientProps as Product} />
+            {/* Pass the client-safe product object to client components */}
+            <ProductPricing product={productForClient as Product} />
             
             <div className="prose prose-lg dark:prose-invert max-w-none font-body text-foreground/90">
               <h2 className="font-headline text-xl">Description</h2>
-              <p>{product.description}</p>
+              <p>{productData.description}</p>
             </div>
 
-            {product.features && (
+            {productData.features && (
                <div className="prose prose-lg dark:prose-invert max-w-none font-body text-foreground/90">
                 <h2 className="font-headline text-xl">Features</h2>
                 <ul className="list-disc list-inside">
-                  {product.features.split(',').map((feature, index) => (
+                  {productData.features.split(',').map((feature, index) => (
                     <li key={index}>{feature.trim()}</li>
                   ))}
                 </ul>
@@ -100,15 +99,15 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
             )}
             
             <ShareToWhatsAppButton 
-              productName={product.name} 
-              productId={product.id} 
+              productName={productData.name} 
+              productId={productData.id} 
               className="w-full sm:w-auto" 
             />
 
             <AIDescriptionGenerator
-              productName={product.name}
-              currentDescription={product.description}
-              features={product.features || ""}
+              productName={productData.name}
+              currentDescription={productData.description}
+              features={productData.features || ""}
             />
           </div>
         </div>
