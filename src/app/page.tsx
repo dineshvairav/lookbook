@@ -89,14 +89,17 @@ export default function LandingPage() {
       </div>
       
       <div className="relative z-10 space-y-8 max-w-2xl">
-        <div className="relative flex justify-center mb-4 animate-fade-in-down logo-container-with-glow">
-          <Image
-            src="/logo.png" 
-            alt="ushªOªpp Logo"
-            width={150}
-            height={50}
-            className="relative z-10" 
-          />
+        <div className="relative flex justify-center mb-4 animate-fade-in-down">
+          <div className="p-[2px] rounded-xl logo-container-with-glow">
+            <div className="bg-card px-4 py-2 rounded-lg">
+              <Image
+                src="/logo.png" 
+                alt="ushªOªpp Logo"
+                width={150}
+                height={50}
+              />
+            </div>
+          </div>
         </div>
         <h1 className="text-6xl md:text-7xl font-bold font-headline text-primary animate-fade-in-down text-center">
           ushªOªpp
@@ -139,35 +142,31 @@ export default function LandingPage() {
         .delay-400 { animation-delay: 0.4s; }
 
         .logo-container-with-glow {
-          position: relative; /* For ::before positioning */
+          position: relative;
+          overflow: hidden; /* This clips the pseudo-element */
+          z-index: 1;
         }
+
         .logo-container-with-glow::before {
           content: '';
           position: absolute;
-          left: 50%;
+          z-index: -1;
           top: 50%;
-          transform: translate(-50%, -50%);
-          width: 220px; /* Adjust size as needed, larger than logo */
-          height: 120px; /* Adjust size, can be elliptical */
+          left: 50%;
+          width: 250%;
+          height: 250%;
           background: conic-gradient(
             from 0deg,
-            hsl(var(--primary) / 0.8),
-            hsl(var(--accent) / 0.8),
-            hsl(var(--secondary) / 0.7),
-            hsl(var(--primary) / 0.8)
+            hsl(var(--primary)),
+            hsl(var(--accent)),
+            hsl(var(--primary))
           );
-          border-radius: 50%; /* Can be adjusted for more elliptical shape */
-          filter: blur(35px); /* Adjust blur amount for glow intensity */
-          animation: rotateGlow 12s linear infinite;
-          z-index: 0; /* Behind the logo image */
-          opacity: 0.75; /* Adjust overall glow visibility */
+          transform: translate(-50%, -50%);
+          animation: rotateGlow 4s linear infinite;
         }
 
         @keyframes rotateGlow {
-          0% {
-            transform: translate(-50%, -50%) rotate(0deg);
-          }
-          100% {
+          to {
             transform: translate(-50%, -50%) rotate(360deg);
           }
         }
