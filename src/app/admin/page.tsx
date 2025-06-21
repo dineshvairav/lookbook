@@ -1215,7 +1215,7 @@ export default function AdminPage() {
                         <TableHead>Phone Number</TableHead>
                         <TableHead>File Type</TableHead>
                         <TableHead>Uploaded Date</TableHead>
-                        <TableHead className="text-center w-[180px]">Actions</TableHead>
+                        <TableHead className="text-center w-[200px]">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1231,6 +1231,23 @@ export default function AdminPage() {
                                 <a href={file.downloadURL} target="_blank" rel="noopener noreferrer" download={file.originalFileName}>
                                   <Download className="mr-1.5 h-3.5 w-3.5" /> Download
                                 </a>
+                              </Button>
+                               <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-8 w-8"
+                                title="Share on WhatsApp"
+                                onClick={() => {
+                                  const message = `Here is the file you requested: ${file.downloadURL}`;
+                                  // The phone number should be in international format without '+' for the wa.me link.
+                                  const whatsappUrl = `https://wa.me/${file.phoneNumber}?text=${encodeURIComponent(message)}`;
+                                  window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+                                }}
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                                  <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.894 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 4.315 1.919 6.066l-1.472 5.375 5.54-1.451zm4.492-5.588c-.273-.136-1.612-.796-1.863-.886-.251-.09-.434-.136-.617.136-.182.273-.703.886-.864 1.062-.161.176-.322.196-.594.06-.273-.136-1.146-.423-2.182-1.346-.807-.719-1.353-1.612-1.514-1.886-.161-.273-.017-.42.118-.557.121-.122.273-.323.409-.484.137-.161.183-.273.273-.455.09-.182.045-.344-.023-.484-.068-.136-.617-1.476-.844-2.015-.228-.539-.456-.464-.617-.47-.162-.006-.344-.006-.527-.006-.183 0-.465.068-.703.344-.237.273-.902.886-.902 2.158 0 1.272.923 2.496 1.043 2.671.121.176 1.816 2.786 4.403 3.84.58.243 1.04.388 1.402.498.534.164.99.146 1.364.088.409-.068 1.251-.512 1.426-.995.176-.484.176-.899.121-1.004-.055-.105-.182-.161-.273-.19z" />
+                                </svg>
+                                <span className="sr-only">Share on WhatsApp</span>
                               </Button>
                               <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleEditSharedFileClick(file)}>
                                 <Edit3 className="h-4 w-4" />
