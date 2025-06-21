@@ -14,9 +14,9 @@ export default function TermsOfServicePage() {
           <h2 className="font-headline">1. Agreement to Terms</h2>
           <p>
             These Terms of Service constitute a legally binding agreement made between you,
-            whether personally or on behalf of an entity (“you”) and Lookbook
+            whether personally or on behalf of an entity (“you”) and ushªOªpp
             (“we,” “us” or “our”), concerning your access to and use of the
-            [Your Website URL] website as well as any other media form, media channel,
+            [usha1960.trade] website as well as any other media form, media channel,
             mobile website or mobile application related, linked, or otherwise connected
             thereto (collectively, the “Site” or "Services").
           </p>
@@ -63,7 +63,7 @@ export default function TermsOfServicePage() {
             make the Site available. The Site may not be used in connection with any
             commercial endeavors except those that are specifically endorsed or approved by us.
           </p>
-          <p>As a user of the Site, you agree not to: [List a few prohibited activities relevant to an e-commerce/lookbook app, e.g., systematic data scraping, unauthorized framing, interfering with security features, etc.]</p>
+          <p>As a user of the Site, you agree not to: [List a few prohibited activities relevant to an e-commerce/ushªOªpp, e.g., systematic data scraping, unauthorized framing, interfering with security features, etc.]</p>
 
           <h2 className="font-headline">6. Purchases and Payment</h2>
           <p>
@@ -98,7 +98,7 @@ export default function TermsOfServicePage() {
           <p>
             These Terms of Service and your use of the Site are governed by and construed
             in accordance with the laws of [Your State/Country] applicable to agreements
-            made and to be entirely performed within [Your State/Country], without regard
+            made and to be entirely performed within [INDIA], without regard
             to its conflict of law principles.
           </p>
           
@@ -118,17 +118,17 @@ export default function TermsOfServicePage() {
             information regarding use of the Site, please contact us at:
           </p>
           <p>
-            Lookbook
+            ushªOªpp
             <br />
-            [Your Company Address Line 1]
+            [Usha Metals & Agency]
             <br />
-            [Your Company Address Line 2]
+            [Fancy Bazaar Road]
             <br />
-            [City, State, Postal Code]
+            [via Aramanapady, Changanacherry, 686101]
             <br />
-            [Country]
+            [INDIA]
             <br />
-            support@lookbook.com
+            info@usha1960.trade
           </p>
         </div>
       </main>

@@ -4,7 +4,7 @@ import { Mail, Phone, MapPin } from 'lucide-react';
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
-  const address = "123 Style Avenue, Fashion City, FC 54321";
+  const address = "Usha Metals & Appliances, Fancy Bazaar, Changanacherry, 686101";
   const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
 
   return (
@@ -33,8 +33,8 @@ export function Footer() {
               <Mail className="h-5 w-5 text-muted-foreground mt-1 shrink-0" />
               <div>
                 <p className="text-sm text-muted-foreground">
-                  <a href="mailto:hello@lookbook.com" className="hover:text-primary transition-colors">
-                    hello@lookbook.com
+                  <a href="mailto:ushaagency1960@gmail.com" className="hover:text-primary transition-colors">
+                    info@usha1960.trade
                   </a>
                 </p>
               </div>
@@ -43,8 +43,8 @@ export function Footer() {
               <Phone className="h-5 w-5 text-muted-foreground mt-1 shrink-0" />
               <div>
                 <p className="text-sm text-muted-foreground">
-                  <a href="tel:+1234567890" className="hover:text-primary transition-colors">
-                    +1 (234) 567-890
+                  <a href="tel:+919961295835" className="hover:text-primary transition-colors">
+                    +91 (9961) 295-835
                   </a>
                 </p>
               </div>
@@ -72,7 +72,7 @@ export function Footer() {
         </div>
         
         <div className="border-t border-border/40 pt-8 text-center text-sm text-muted-foreground">
-          <p>&copy; {currentYear} Lookbook App. All rights reserved.</p>
+          <p>&copy; {currentYear} ushªOªpp. All rights reserved.</p>
           <p>Designed with elegance and sophistication.</p>
         </div>
       </div>

@@ -71,12 +71,12 @@ export function Header() {
                 {/* The SheetTitle is now the direct child of SheetHeader as expected for styling & accessibility */}
                 <SheetTitle>
                   <Link href="/" onClick={closeMobileMenu} className="text-xl font-bold font-headline text-primary">
-                    Lookbook
+                    ushªOªpp
                   </Link>
                 </SheetTitle>
                 {/* The SheetDescription is provided for screen readers */}
                 <SheetDescription className="sr-only">
-                  Main navigation menu for Lookbook. Access shop, wishlist, profile, and other settings.
+                  Main navigation menu for ushªOªpp. Access shop, wishlist, profile, and other settings.
                 </SheetDescription>
               </SheetHeader>
 
