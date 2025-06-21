@@ -2,62 +2,71 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
-import type { SharedFile } from '@/lib/types'; // Correctly import SharedFile
+import type { SharedFile } from '@/lib/types';
 import { Loader2, FileText, Download, AlertCircle, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
 
 export default function DownloadsPage() {
-  const [files, setFiles] = useState<SharedFile[]>([]); // Use SharedFile[]
+  const searchParams = useSearchParams();
+  const [files, setFiles] = useState<SharedFile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [phoneNumber, setPhoneNumber] = useState<string | null>(null);
 
   useEffect(() => {
+    const phoneFromUrl = searchParams.get('phone');
     const guestPhoneNumber = localStorage.getItem('guestPhoneNumber');
-    if (guestPhoneNumber) {
-      setPhoneNumber(guestPhoneNumber);
-      fetchFiles(guestPhoneNumber);
-    } else {
-      setError("No phone number found for guest session. Please try logging in as guest again.");
-      setIsLoading(false);
+
+    let effectivePhoneNumber: string | null = null;
+    
+    if (phoneFromUrl) {
+      effectivePhoneNumber = phoneFromUrl;
+      localStorage.setItem('guestPhoneNumber', phoneFromUrl); // Save/update for future visits
+    } else if (guestPhoneNumber) {
+      effectivePhoneNumber = guestPhoneNumber;
     }
 
-    // Optional: Clear phone number after use if it's a one-time view
-    // return () => localStorage.removeItem('guestPhoneNumber'); 
-  }, []);
+    if (effectivePhoneNumber) {
+      setPhoneNumber(effectivePhoneNumber);
+      fetchFiles(effectivePhoneNumber);
+    } else {
+      setError("No phone number found. Please use the link from your notification or log in as a guest again.");
+      setIsLoading(false);
+    }
+  }, [searchParams]);
 
   const fetchFiles = async (phone: string) => {
     setIsLoading(true);
     setError(null);
     try {
-      const filesCollectionRef = collection(db, "sharedFiles"); // Corrected collection name
+      const filesCollectionRef = collection(db, "sharedFiles");
       const q = query(filesCollectionRef, where("phoneNumber", "==", phone));
       const querySnapshot = await getDocs(q);
       
-      const fetchedFiles: SharedFile[] = []; // Use SharedFile[]
+      const fetchedFiles: SharedFile[] = [];
       querySnapshot.forEach((doc) => {
         const data = doc.data();
-        // Ensure uploadedAt is properly converted if it's a Firestore Timestamp
         let uploadedAtDisplay = 'N/A';
         if (data.uploadedAt && data.uploadedAt.toDate) {
              uploadedAtDisplay = data.uploadedAt.toDate().toLocaleDateString();
-        } else if (data.uploadedAt) { // if it's already a string or number
+        } else if (data.uploadedAt) {
             uploadedAtDisplay = new Date(data.uploadedAt).toLocaleDateString();
         }
 
         fetchedFiles.push({
           id: doc.id,
           ...data,
-          uploadedAt: uploadedAtDisplay, // Store as display string
-        } as SharedFile); // Correct type assertion
+          uploadedAt: uploadedAtDisplay,
+        } as SharedFile);
       });
-      setFiles(fetchedFiles.sort((a,b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime())); // Sort by date desc
+      setFiles(fetchedFiles.sort((a,b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()));
     } catch (e: any) {
       console.error("Error fetching files:", e);
       setError(`Failed to fetch files. ${e.message}`);

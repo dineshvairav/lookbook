@@ -436,11 +436,21 @@ export default function AdminPage() {
       resetSharedFileForm();
       fetchSharedFiles();
 
-      // TODO: Trigger a backend function (e.g., Firebase Cloud Function) here to send an FCM notification
-      // to the user associated with data.phoneNumber if they have an FCM token.
-      // Example payload for the function: { phoneNumber: data.phoneNumber, fileName: fileToUpload.name, downloadURL: downloadURL }
-      console.log(`Placeholder: Would trigger backend notification for ${data.phoneNumber} about file ${fileToUpload.name}`);
+      // --- Send Notification Logic (Simulated) ---
+      // In a real app, this would call a Firebase Cloud Function.
+      // The function would find the user by phone number and send a push notification to their registered device(s).
+      const appUrl = window.location.origin;
+      const downloadLink = `${appUrl}/downloads?phone=${encodeURIComponent(data.phoneNumber)}`;
 
+      console.log("--- SIMULATING NOTIFICATION ---");
+      console.log(`A backend function would be triggered for phone: ${data.phoneNumber}`);
+      console.log(`It would send a push notification with a deep link: ${downloadLink}`);
+      console.log(`The user clicking the notification would be taken to the downloads page and see their files.`);
+      
+      toast({
+        title: "Notification Sent (Simulated)",
+        description: `A notification to open the app would be sent to ${data.phoneNumber}.`,
+      });
 
     } catch (error: any) {
       console.error("Error uploading shared file:", error);

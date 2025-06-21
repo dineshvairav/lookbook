@@ -99,7 +99,7 @@ export default function LandingPage() {
           />
         </div>
         <h1 className="text-6xl md:text-7xl font-bold font-headline text-primary animate-fade-in-down text-center">
-          Lookbook
+          ushªOªpp
         </h1>
         <p className="text-xl md:text-2xl text-foreground/80 font-body animate-fade-in-up delay-200">
           Discover your next style statement. Curated collections, updated daily.
