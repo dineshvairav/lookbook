@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
 
-export default function DownloadsPage() {
+function DownloadsPageContent() {
   const searchParams = useSearchParams();
   const [files, setFiles] = useState<SharedFile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -140,5 +140,26 @@ export default function DownloadsPage() {
       </main>
       <Footer />
     </div>
+  );
+}
+
+
+function DownloadsPageSkeleton() {
+    return (
+        <div className="flex flex-col min-h-screen bg-background">
+            <Header />
+            <main className="flex-grow flex items-center justify-center">
+                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            </main>
+            <Footer />
+        </div>
+    );
+}
+
+export default function DownloadsPage() {
+  return (
+    <Suspense fallback={<DownloadsPageSkeleton />}>
+      <DownloadsPageContent />
+    </Suspense>
   );
 }
