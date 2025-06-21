@@ -4,8 +4,8 @@ import { Toaster } from "@/components/ui/toaster";
 import Providers from './providers'; // Import Providers
 
 export const metadata: Metadata = {
-  title: 'Lookbook App',
-  description: 'A stylish lookbook of products.',
+  title: 'ushªOªpp',
+  description: 'A stylish ushªOªpp of products.',
 };
 
 export default function RootLayout({
