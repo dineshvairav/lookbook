@@ -28,7 +28,7 @@ export default function AboutUsPage() {
             <div className="grid md:grid-cols-2 gap-8 items-center">
               <div>
                 <p className="text-lg font-body text-foreground/90 leading-relaxed mb-4">
-                  Founded in [1960], Lookbook started as a small passion project by a group of
+                  Founded in [1960], ushªOªpp started as a small passion project by a group of
                   fashion enthusiasts who wanted to create a platform that celebrated individuality
                   and timeless style. We noticed a gap in the market for a curated space that
                   offered not just products, but inspiration and a sense of community.

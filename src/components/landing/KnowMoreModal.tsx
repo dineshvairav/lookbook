@@ -19,7 +19,7 @@ interface KnowMoreModalProps {
 }
 
 export function KnowMoreModal({ isOpen, onClose }: KnowMoreModalProps) {
-  const address = "123 Style Avenue, Fashion City, FC 54321";
+  const address = "Usha Metals & Appliances, Fancy Bazaar, Changanacherry, 686101";
   const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
 
   return (
@@ -51,8 +51,8 @@ export function KnowMoreModal({ isOpen, onClose }: KnowMoreModalProps) {
             <div>
               <h4 className="font-semibold text-foreground">Email</h4>
               <p className="text-muted-foreground">
-                <a href="mailto:hello@lookbook.com" className="hover:text-primary transition-colors">
-                  hello@lookbook.com
+                <a href="mailto:ushaagency1960@gmail.com" className="hover:text-primary transition-colors">
+                  info@usha1960.trade
                 </a>
               </p>
             </div>
@@ -62,8 +62,8 @@ export function KnowMoreModal({ isOpen, onClose }: KnowMoreModalProps) {
             <div>
               <h4 className="font-semibold text-foreground">Phone</h4>
               <p className="text-muted-foreground">
-                <a href="tel:+1234567890" className="hover:text-primary transition-colors">
-                  +1 (234) 567-890
+                <a href="tel:+919961295835" className="hover:text-primary transition-colors">
+                  +91 (9961) 295-835
                 </a>
               </p>
             </div>

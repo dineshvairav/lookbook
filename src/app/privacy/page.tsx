@@ -13,10 +13,10 @@ export default function PrivacyPolicyPage() {
 
           <h2 className="font-headline">1. Introduction</h2>
           <p>
-            Welcome to Lookbook ("we," "our," or "us"). We are committed to protecting your
+            Welcome to ushªOªpp ("we," "our," or "us"). We are committed to protecting your
             personal information and your right to privacy. If you have any questions or
             concerns about this privacy notice, or our practices with regards to your
-            personal information, please contact us at privacy@lookbook.com.
+            personal information, please contact us at info@usha1960.trade.
           </p>
           <p>
             This privacy notice describes how we might use your information if you:
@@ -114,18 +114,18 @@ export default function PrivacyPolicyPage() {
           <h2 className="font-headline">10. How Can You Contact Us About This Notice?</h2>
           <p>
             If you have questions or comments about this notice, you may email us at
-            privacy@lookbook.com or by post to:
+            info@usha1960.trade or by post to:
           </p>
           <p>
-            Lookbook
+            ushªOªpp
             <br />
-            [Your Company Address Line 1]
+            [Usha Metals & Agency]
             <br />
-            [Your Company Address Line 2]
+            [Fancy Bazaar]
             <br />
-            [City, State, Postal Code]
+            [Changanacherry, Kerala, 686101]
             <br />
-            [Country]
+            [INDIA]
           </p>
         </div>
       </main>

@@ -90,7 +90,7 @@ export function AuthDialog() {
             {activeTab === "login" ? "Login" : "Sign Up"}
           </DialogTitle>
           <DialogDescription className="font-body text-center">
-            {activeTab === "login" ? "Access your Lookbook account." : "Create a new Lookbook account."}
+            {activeTab === "login" ? "Access your ushªOªpp account." : "Create a new ushªOªpp account."}
           </DialogDescription>
         </DialogHeader>
         

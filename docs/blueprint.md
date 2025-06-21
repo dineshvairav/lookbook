@@ -1,4 +1,4 @@
-# **App Name**: Lookbook
+# **App Name**: ushªOªpp
 
 ## Core Features:
 

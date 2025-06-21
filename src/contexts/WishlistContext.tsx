@@ -21,7 +21,7 @@ export const WishlistProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     // Simulate loading wishlist from localStorage
-    const storedWishlist = localStorage.getItem("lookbookWishlist");
+    const storedWishlist = localStorage.getItem("ushªOªppWishlist");
     if (storedWishlist) {
       setWishlistItems(JSON.parse(storedWishlist));
     }
@@ -29,7 +29,7 @@ export const WishlistProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const updateLocalStorage = (items: Product[]) => {
-    localStorage.setItem("lookbookWishlist", JSON.stringify(items));
+    localStorage.setItem("ushªOªppWishlist", JSON.stringify(items));
   };
 
   const addToWishlist = (product: Product) => {

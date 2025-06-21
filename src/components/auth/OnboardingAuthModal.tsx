@@ -88,7 +88,7 @@ export function OnboardingAuthModal({ onLoginSuccess, onClose }: OnboardingAuthM
     <>
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="text-center">
-          <CardTitle className="font-headline text-3xl">Join Lookbook</CardTitle>
+          <CardTitle className="font-headline text-3xl">Join ushªOªpp</CardTitle>
           <CardDescription className="font-body">Create an account or sign in to continue.</CardDescription>
         </CardHeader>
         <CardContent>
