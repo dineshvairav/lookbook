@@ -13,7 +13,7 @@ interface OnboardingSlidesProps {
 
 const slidesContent = [
   {
-    title: "Welcome to Lookbook!",
+    title: "Welcome to ushªOªpp!",
     description: "Discover unique styles and the latest trends, curated just for you.",
     image: "/home_1.png",
     aiHint: "fashion editorial"
