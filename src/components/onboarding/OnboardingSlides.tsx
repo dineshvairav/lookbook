@@ -84,19 +84,28 @@ export function OnboardingSlides({ onComplete, onSkip }: OnboardingSlidesProps) 
       <div className="bg-card p-6 sm:p-10 rounded-xl shadow-2xl w-full max-w-md text-center relative flex flex-col" style={{minHeight: '70vh'}}>
         <div className="flex-grow flex flex-col items-center justify-center">
           <div className="mb-6 w-full aspect-video relative rounded-lg overflow-hidden">
-            <Image
-              src={slide.image}
-              alt={slide.title}
-              layout="fill"
-              objectFit="cover"
-              data-ai-hint={slide.aiHint}
-              className="transition-opacity duration-500 ease-in-out"
-              key={currentSlide} // Ensures image transition if src changes
-              priority={currentSlide === 0} // Prioritize first image
-            />
+             <div
+              className="flex transition-transform duration-500 ease-in-out h-full"
+              style={{ transform: `translateX(-${currentSlide * 100}%)` }}
+            >
+              {slidesContent.map((s, index) => (
+                <div key={index} className="w-full h-full flex-shrink-0 relative">
+                  <Image
+                    src={s.image}
+                    alt={s.title}
+                    layout="fill"
+                    objectFit="cover"
+                    data-ai-hint={s.aiHint}
+                    priority={index === 0}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
-          <h2 className="text-3xl font-bold font-headline text-primary mb-3">{slide.title}</h2>
-          <p className="text-foreground/80 font-body mb-8 min-h-[60px]">{slide.description}</p>
+          <div key={currentSlide} className="animate-in fade-in duration-500">
+            <h2 className="text-3xl font-bold font-headline text-primary mb-3">{slide.title}</h2>
+            <p className="text-foreground/80 font-body mb-8 min-h-[60px]">{slide.description}</p>
+          </div>
         </div>
 
         <div className="mt-auto">

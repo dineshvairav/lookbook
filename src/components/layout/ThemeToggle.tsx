@@ -6,25 +6,18 @@ import { Moon, Sun } from "lucide-react";
 
 // A simple theme toggle hook (could be replaced by next-themes or similar)
 const useTheme = () => {
+  // The initial state is 'light' to match the server, and useEffect syncs it.
   const [theme, setThemeState] = React.useState<"light" | "dark">("light");
 
   React.useEffect(() => {
-    const storedTheme = localStorage.getItem("theme") as "light" | "dark" | null;
-    const systemPrefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    if (storedTheme) {
-      setThemeState(storedTheme);
-      document.documentElement.classList.toggle("dark", storedTheme === "dark");
-    } else if (systemPrefersDark) {
-      setThemeState("dark");
-      document.documentElement.classList.add("dark");
-    } else {
-       setThemeState("light");
-       document.documentElement.classList.remove("dark");
-    }
+    // On mount, sync the React state with the DOM state set by the inline script.
+    const isDark = document.documentElement.classList.contains("dark");
+    setThemeState(isDark ? "dark" : "light");
   }, []);
 
   const setTheme = (newTheme: "light" | "dark") => {
     setThemeState(newTheme);
+    // When the user makes a choice, store it in localStorage.
     localStorage.setItem("theme", newTheme);
     document.documentElement.classList.toggle("dark", newTheme === "dark");
   };
