@@ -82,7 +82,7 @@ export function GuestLoginModal({ isOpen, onClose, onGuestLoginSuccess }: GuestL
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="guest-phone-number" className="font-body flex items-center">
-                <Phone className="mr-2 h-4 w-4 text-muted-foreground"/>Phone Number (with country code)
+                <Phone className="mr-2 h-4 w-4 text-muted-foreground"/>Phone Number
               </Label>
               <Input
                 id="guest-phone-number"

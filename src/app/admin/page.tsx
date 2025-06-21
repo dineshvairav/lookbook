@@ -1263,7 +1263,7 @@ export default function AdminPage() {
             <CardContent>
               <form onSubmit={handleSubmitSharedFile(onSharedFileUploadSubmit)} className="space-y-6">
                 <div className="space-y-2">
-                  <Label htmlFor="phoneNumber" className="font-body">User's Phone Number (with country code)</Label>
+                  <Label htmlFor="phoneNumber" className="font-body">User's Phone Number</Label>
                   <Input
                     id="phoneNumber"
                     type="tel"
@@ -1336,7 +1336,7 @@ export default function AdminPage() {
             </DialogHeader>
             <form onSubmit={handleSubmitEditSharedFile(onEditSharedFileSubmit)} className="space-y-4 py-4">
               <div>
-                <Label htmlFor="editSharedFilePhoneNumber">Phone Number (with country code)</Label>
+                <Label htmlFor="editSharedFilePhoneNumber">Phone Number</Label>
                 <Input
                   id="editSharedFilePhoneNumber"
                   type="tel"
