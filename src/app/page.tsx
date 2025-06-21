@@ -20,6 +20,15 @@ export default function LandingPage() {
     setIsMounted(true);
   }, []);
 
+  useEffect(() => {
+    // Check for the flag on component mount (client-side only)
+    if (sessionStorage.getItem('showOnboardingAfterLogout') === 'true') {
+      setShowOnboarding(true);
+      // Clear the flag so it doesn't trigger again on refresh
+      sessionStorage.removeItem('showOnboardingAfterLogout');
+    }
+  }, []);
+
 
   const handleGetStarted = () => {
     setShowOnboarding(true);
@@ -50,7 +59,7 @@ export default function LandingPage() {
   }
 
   if (showOnboarding) {
-    return <OnboardingSlides onComplete={handleOnboardingComplete} onSkip={handleAuthSuccess} />;
+    return <OnboardingSlides onComplete={handleOnboardingComplete} onSkip={handleOnboardingComplete} />;
   }
 
   // The Auth Modal is presented on its own screen for better focus
@@ -83,7 +92,7 @@ export default function LandingPage() {
         <div className="relative flex justify-center mb-4 animate-fade-in-down logo-container-with-glow">
           <Image
             src="/logo.png" 
-            alt="Lookbook Application Logo"
+            alt="ushªOªpp Logo"
             width={150}
             height={50}
             className="relative z-10" 

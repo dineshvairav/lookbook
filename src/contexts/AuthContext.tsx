@@ -147,6 +147,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(true);
     try {
       await firebaseSignOut(auth);
+      // Set a flag to show onboarding on the landing page after logout
+      sessionStorage.setItem('showOnboardingAfterLogout', 'true');
       router.push('/'); 
     } catch (error) {
       console.error("Firebase logout error:", error);
