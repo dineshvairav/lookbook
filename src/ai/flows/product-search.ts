@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -9,7 +10,7 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { z } from 'zod';
 import { fetchProductsFromFirestore } from '@/lib/data';
 
 // This is the input to the prompt itself
@@ -19,12 +20,12 @@ const PromptInputSchema = z.object({
 });
 
 // This is the input to the overall flow
-export const ProductSearchInputSchema = z.object({
+const ProductSearchInputSchema = z.object({
   query: z.string().describe("The user's search query."),
 });
 export type ProductSearchInput = z.infer<typeof ProductSearchInputSchema>;
 
-export const ProductSearchOutputSchema = z.object({
+const ProductSearchOutputSchema = z.object({
   productIds: z
     .array(z.string())
     .describe('An array of product IDs that are relevant to the user\'s query.'),
