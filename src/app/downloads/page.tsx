@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useEffect, useState, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { db } from '@/lib/firebase';
@@ -15,6 +15,7 @@ import Link from 'next/link';
 
 function DownloadsPageContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [files, setFiles] = useState<SharedFile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -41,6 +42,40 @@ function DownloadsPageContent() {
       setIsLoading(false);
     }
   }, [searchParams]);
+
+  useEffect(() => {
+    let inactivityTimer: NodeJS.Timeout;
+
+    const redirectToShop = () => {
+      router.push('/shop');
+    };
+
+    const resetInactivityTimer = () => {
+      clearTimeout(inactivityTimer);
+      inactivityTimer = setTimeout(redirectToShop, 12000); // 12 seconds
+    };
+
+    const activityEvents: (keyof WindowEventMap)[] = [
+      'mousemove',
+      'mousedown',
+      'keydown',
+      'touchstart',
+      'scroll',
+    ];
+
+    activityEvents.forEach((event) => {
+      window.addEventListener(event, resetInactivityTimer, { passive: true });
+    });
+
+    resetInactivityTimer();
+
+    return () => {
+      clearTimeout(inactivityTimer);
+      activityEvents.forEach((event) => {
+        window.removeEventListener(event, resetInactivityTimer);
+      });
+    };
+  }, [router]);
 
   const fetchFiles = async (phone: string) => {
     setIsLoading(true);
