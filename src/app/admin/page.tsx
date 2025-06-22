@@ -92,24 +92,21 @@ const productFormSchema = z.object({
   dp: z.coerce.number().positive("DP must be a positive number.").optional().nullable(),
   category: z.string().min(1, "Category is required."),
   features: z.string().optional(),
-  productImage: z.any()
-    .refine((files: FileList | undefined | null, ctx) => {
-      const { editingProduct } = ctx.custom || {};
-      if (editingProduct) return true;
-      return files && files.length > 0;
-    }, "Product image is required for new products.")
-    .refine(
-      (files: FileList | undefined | null) => {
+  productImages: z.any().optional() // Optional at schema level, validated in handler
+    .refine((files: FileList | undefined | null) => {
         if (!files || files.length === 0) return true;
-        return files[0].size <= MAX_PRODUCT_IMAGE_SIZE_BYTES;
-      }, `Max image size is ${MAX_PRODUCT_IMAGE_SIZE_MB}MB.`
-    )
-    .refine(
-      (files: FileList | undefined | null) => {
+        for (const file of Array.from(files)) {
+          if (file.size > MAX_PRODUCT_IMAGE_SIZE_BYTES) return false;
+        }
+        return true;
+      }, `Max image size per file is ${MAX_PRODUCT_IMAGE_SIZE_MB}MB.`)
+    .refine((files: FileList | undefined | null) => {
         if (!files || files.length === 0) return true;
-        return ACCEPTED_PRODUCT_IMAGE_TYPES.includes(files[0].type);
-      }, `Only ${ACCEPTED_PRODUCT_IMAGE_TYPES.map(t => t.split('/')[1].toUpperCase()).join(', ')} images are accepted.`
-    ),
+        for (const file of Array.from(files)) {
+          if (!ACCEPTED_PRODUCT_IMAGE_TYPES.includes(file.type)) return false;
+        }
+        return true;
+      }, `Only ${ACCEPTED_PRODUCT_IMAGE_TYPES.map(t => t.split('/')[1].toUpperCase()).join(', ')} images are accepted.`),
 });
 type ProductFormValues = z.infer<typeof productFormSchema>;
 
@@ -185,6 +182,7 @@ export default function AdminPage() {
     name: string;
     storagePath?: string;
     imageUrl?: string;
+    imageUrls?: string[]; // For product deletion
   } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -373,13 +371,19 @@ export default function AdminPage() {
   const handleDeleteConfirmation = async () => {
     if (!showDeleteConfirmModal) return;
     setIsDeleting(true);
-    const { type, id, name, storagePath, imageUrl } = showDeleteConfirmModal;
+    const { type, id, name, storagePath, imageUrl, imageUrls } = showDeleteConfirmModal;
 
     try {
       if (type === 'product') {
-        if (imageUrl) {
-          const path = getStoragePathFromUrl(imageUrl);
-          if (path) await deleteObject(storageRef(storage, path));
+        // Delete all images associated with the product
+        const imagesToDelete = imageUrls || (imageUrl ? [imageUrl] : []);
+        if (imagesToDelete.length > 0) {
+          const deletePromises = imagesToDelete.map(url => {
+            const path = getStoragePathFromUrl(url);
+            if (path) return deleteObject(storageRef(storage, path));
+            return Promise.resolve();
+          });
+          await Promise.all(deletePromises);
         }
         await deleteDoc(doc(db, "products", id));
         toast({ title: "Product Deleted", description: `${name} has been deleted.` });
@@ -493,39 +497,55 @@ export default function AdminPage() {
       return;
     }
     setIsSubmittingProduct(true);
-    const imageFile = data.productImage?.[0];
+    const imageFiles: FileList | null | undefined = data.productImages;
+
+    // Validation for new products
+    if (!editingProduct && (!imageFiles || imageFiles.length === 0)) {
+        toast({title: "Image Required", description: "At least one product image is required for new products.", variant: "destructive"});
+        setIsSubmittingProduct(false);
+        return;
+    }
 
     try {
-      let imageUrl = editingProduct?.imageUrl;
-      let imagePath: string | undefined = editingProduct && imageUrl ? getStoragePathFromUrl(imageUrl) : undefined;
+      let newImageUrls: string[] = editingProduct?.images || [];
+      let primaryImageUrl = editingProduct?.imageUrl;
 
-      if (imageFile) {
-        if (editingProduct && editingProduct.imageUrl) {
-          const oldPath = getStoragePathFromUrl(editingProduct.imageUrl);
-          if (oldPath) await deleteObject(storageRef(storage, oldPath)).catch(e => console.warn("Old image deletion failed (might not exist):", e));
+      // If new images are uploaded, they replace all old ones.
+      if (imageFiles && imageFiles.length > 0) {
+        // 1. Delete old images from storage if editing an existing product
+        if (editingProduct && editingProduct.images && editingProduct.images.length > 0) {
+          const deletePromises = editingProduct.images.map(url => {
+            const oldPath = getStoragePathFromUrl(url);
+            if (oldPath) {
+              return deleteObject(storageRef(storage, oldPath)).catch(e => console.warn("Old image deletion failed (might not exist):", e));
+            }
+            return Promise.resolve();
+          });
+          await Promise.all(deletePromises);
         }
-        const newImageId = editingProduct?.id || doc(collection(db, "products")).id;
-        imagePath = `product-images/${newImageId}/${imageFile.name}`;
-        const imageFileRef = storageRef(storage, imagePath);
-        await uploadBytes(imageFileRef, imageFile);
-        imageUrl = await getDownloadURL(imageFileRef);
-      } else if (!editingProduct) {
-          toast({title: "Image Required", description: "Product image is required for new products.", variant: "destructive"});
-          setIsSubmittingProduct(false);
-          return;
+
+        // 2. Upload new images
+        const productIdForPath = editingProduct?.id || doc(collection(db, "products")).id;
+        const uploadPromises = Array.from(imageFiles).map(file => {
+          const imagePath = `product-images/${productIdForPath}/${Date.now()}-${file.name}`;
+          const imageFileRef = storageRef(storage, imagePath);
+          return uploadBytes(imageFileRef, file).then(() => getDownloadURL(imageFileRef));
+        });
+
+        newImageUrls = await Promise.all(uploadPromises);
+        primaryImageUrl = newImageUrls[0] || undefined;
       }
-
-
+      
       const productData = {
         name: data.name,
         description: data.description,
-        mrp: data.mrp || undefined,
+        mrp: data.mrp || null,
         mop: data.mop,
-        dp: data.dp || undefined,
+        dp: data.dp || null,
         category: data.category,
         features: data.features || '',
-        imageUrl: imageUrl,
-        images: imageUrl ? [imageUrl] : [],
+        imageUrl: primaryImageUrl || '',
+        images: newImageUrls,
         slug: data.name.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, ''),
         updatedAt: serverTimestamp(),
       };
@@ -560,6 +580,7 @@ export default function AdminPage() {
     setProductFormValue("dp", product.dp || null);
     setProductFormValue("category", product.category);
     setProductFormValue("features", product.features || '');
+    setProductFormValue("productImages", undefined); // Reset file input
     document.getElementById('productFormCard')?.scrollIntoView({ behavior: 'smooth' });
   };
   
@@ -1097,22 +1118,34 @@ export default function AdminPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="productImage" className="font-body">
-                      Product Image {editingProduct ? '(Leave blank to keep existing)' : ''} (Max ${MAX_PRODUCT_IMAGE_SIZE_MB}MB)
+                    <Label htmlFor="productImages" className="font-body">
+                      Product Images {editingProduct ? '(Upload to replace all existing)' : ''} (Max ${MAX_PRODUCT_IMAGE_SIZE_MB}MB each)
                     </Label>
                     <Input
-                      id="productImage"
+                      id="productImages"
                       type="file"
-                      {...registerProduct("productImage")}
+                      {...registerProduct("productImages")}
                       accept={ACCEPTED_PRODUCT_IMAGE_TYPES.join(',')}
                       className="file:mr-4 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
                       disabled={isSubmittingProduct}
+                      multiple
                     />
-                    {productErrors.productImage && <p className="text-sm text-destructive">{productErrors.productImage.message as string}</p>}
-                     {editingProduct && editingProduct.imageUrl && (
-                        <div className="mt-2">
-                            <p className="text-xs text-muted-foreground">Current image:</p>
-                            <Image src={editingProduct.imageUrl} alt="Current product image" width={80} height={80} className="rounded object-cover"/>
+                    {productErrors.productImages && <p className="text-sm text-destructive">{productErrors.productImages.message as string}</p>}
+                    {editingProduct && editingProduct.images && editingProduct.images.length > 0 && (
+                        <div className="mt-4">
+                            <p className="text-sm font-medium text-muted-foreground mb-2">Current Images:</p>
+                            <div className="flex flex-wrap gap-2">
+                                {editingProduct.images.map((imgUrl, index) => (
+                                    <Image
+                                        key={index}
+                                        src={imgUrl}
+                                        alt={`Current product image ${index + 1}`}
+                                        width={80}
+                                        height={80}
+                                        className="rounded object-cover aspect-square"
+                                    />
+                                ))}
+                            </div>
                         </div>
                     )}
                   </div>
@@ -1174,7 +1207,7 @@ export default function AdminPage() {
                                   <Edit3 className="h-4 w-4" />
                                 </Button>
                                 <Button variant="destructive" size="icon" className="h-8 w-8"
-                                onClick={() => setShowDeleteConfirmModal({ type: 'product', id: product.id, name: product.name, imageUrl: product.imageUrl })}>
+                                onClick={() => setShowDeleteConfirmModal({ type: 'product', id: product.id, name: product.name, imageUrls: product.images })}>
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
                               </div>
@@ -1323,7 +1356,7 @@ export default function AdminPage() {
               <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
               <AlertDialogDescription>
                 This action cannot be undone. This will permanently delete the {showDeleteConfirmModal.type} "{showDeleteConfirmModal.name}"
-                { (showDeleteConfirmModal.type === 'sharedFile' || ( (showDeleteConfirmModal.type === 'product' || showDeleteConfirmModal.type === 'category') && showDeleteConfirmModal.imageUrl ) ) && " and its associated file/image from storage."}
+                { (showDeleteConfirmModal.type === 'product' || showDeleteConfirmModal.type === 'category' || showDeleteConfirmModal.type === 'sharedFile' ) && " and its associated file(s)/image(s) from storage."}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -1450,5 +1483,3 @@ export default function AdminPage() {
     </div>
   );
 }
-
-    
