@@ -94,7 +94,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // onAuthStateChanged will handle setting user and setIsLoading(false)
     } catch (error: any) {
       setIsLoading(false);
-      console.error("Firebase login error:", error.code);
       if (error.code === 'auth/account-exists-with-different-credential') {
         throw new Error("This email is already associated with a Google account. Please use 'Sign in with Google' instead.");
       }
@@ -131,7 +130,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // onAuthStateChanged will handle setting user state and setIsLoading(false)
     } catch (error: any) {
       setIsLoading(false);
-      console.error("Firebase signup error:", error.code);
       if (error.code === 'auth/email-already-in-use') {
         throw new Error('This email is already in use. Please log in or use a different email.');
       }
@@ -150,7 +148,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // onAuthStateChanged will handle setting user, Firestore doc, and setIsLoading(false)
     } catch (error) {
       setIsLoading(false);
-      console.error("Firebase Google sign-in error:", error);
       throw error;
     }
   };
@@ -163,7 +160,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       sessionStorage.setItem('showOnboardingAfterLogout', 'true');
       router.push('/'); 
     } catch (error) {
-      console.error("Firebase logout error:", error);
       setIsLoading(false); 
       throw error;
     }
