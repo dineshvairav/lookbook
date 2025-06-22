@@ -14,7 +14,7 @@ export default function TermsOfServicePage() {
           <h2 className="font-headline">1. Agreement to Terms</h2>
           <p>
             These Terms of Service constitute a legally binding agreement made between you,
-            whether personally or on behalf of an entity (“you”) and Usha Metals & Agency, operating as
+            whether personally or on behalf of an entity (“you”) and, ushªOªpp operating as
             ushªOªpp (“we,” “us” or “our”), concerning your access to and use of the
             usha1960.trade website as well as any other media form, media channel,
             mobile website or mobile application related, linked, or otherwise connected

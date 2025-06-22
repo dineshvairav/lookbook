@@ -10,7 +10,7 @@ export default function AboutUsPage() {
       <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="bg-card p-8 md:p-12 rounded-lg shadow-xl">
           <h1 className="text-4xl md:text-5xl font-bold font-headline text-primary mb-8 text-center">
-            About Usha Metals & Agency
+            About ushªOªpp
           </h1>
 
           <section className="mb-12">
@@ -25,7 +25,7 @@ export default function AboutUsPage() {
             <div className="grid md:grid-cols-2 gap-8 items-center">
               <div>
                 <p className="text-lg font-body text-foreground/90 leading-relaxed mb-4">
-                  Founded in 1960, Usha Metals & Agency has grown from a humble beginning into a cornerstone of the community for household necessities. For over six decades, we have built a legacy of trust, supplying everything from traditional aluminum, stainless steel, and brass vessels to modern small appliances and elegant crockery.
+                  Founded in 1960, ushªOªpp has grown from a humble beginning into a cornerstone of the community for household necessities. For over six decades, we have built a legacy of trust, supplying everything from traditional aluminum, stainless steel, and brass vessels to modern small appliances and elegant crockery.
                 </p>
                 <p className="text-lg font-body text-foreground/90 leading-relaxed">
                   Our journey has been one of continuous adaptation and commitment to our customers. We pride ourselves on understanding the needs of both individual households and small businesses, offering a diverse inventory that includes cookware, glassware, and unique presentation articles, ensuring quality and value in every item.
