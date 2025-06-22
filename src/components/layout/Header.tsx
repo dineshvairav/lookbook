@@ -74,14 +74,25 @@ export function Header() {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-4 lg:space-x-6">
-          <form onSubmit={handleSearchSubmit} className="relative flex items-center h-9">
+          <form
+            onSubmit={handleSearchSubmit}
+            className={cn(
+              "relative flex items-center h-9 transition-all duration-300 ease-in-out",
+              isSearchOpen ? "w-56" : "w-9"
+            )}
+          >
             <div
               className={cn(
-                "relative transition-all duration-300 ease-in-out",
-                isSearchOpen ? "w-56" : "w-9",
+                "relative h-full w-full",
                 isSearchOpen && searchValue && "p-[1.5px] rounded-lg search-container-with-glow"
               )}
             >
+              <div
+                className={cn(
+                  "absolute inset-0 z-[-1] rounded-lg",
+                  isSearchOpen && searchValue && "search-glow-effect"
+                )}
+              />
               <Input
                 ref={searchInputRef}
                 type="search"
@@ -96,9 +107,9 @@ export function Header() {
                 }}
                 placeholder="AI Search..."
                 className={cn(
-                  "relative h-9 w-full bg-background pl-10 pr-4 text-sm transition-all duration-300 ease-in-out focus-visible:ring-0 focus-visible:ring-offset-0",
-                  isSearchOpen ? "cursor-text" : "cursor-pointer",
-                  // If glowing, remove border and adjust radius. Otherwise, use default input border.
+                  "relative h-9 w-full bg-background pr-4 text-sm transition-all duration-300 ease-in-out focus-visible:ring-0 focus-visible:ring-offset-0",
+                  isSearchOpen ? "cursor-text pl-10" : "cursor-pointer pl-9 border-transparent",
+                  !isSearchOpen && "pointer-events-none",
                   isSearchOpen && searchValue
                     ? "border-0 rounded-[calc(var(--radius)-1.5px)]"
                     : "border border-input rounded-lg"
@@ -111,7 +122,7 @@ export function Header() {
               variant="ghost"
               size="icon"
               aria-label="Search"
-              className="absolute left-0 h-9 w-9 shrink-0 rounded-lg"
+              className="absolute left-0 top-0 h-9 w-9 shrink-0 rounded-lg"
               onClick={(e) => {
                 if (!isSearchOpen) {
                   e.preventDefault();
@@ -257,12 +268,21 @@ export function Header() {
         height: 250%;
         background: conic-gradient(
           from 180deg at 50% 50%,
+          hsl(var(--primary)),
+          hsl(var(--accent)),
+          hsl(var(--primary))
+        );
+        animation: rotateGlow 4s linear infinite;
+        transform: translate(-50%, -50%);
+      }
+      .search-glow-effect {
+        background: conic-gradient(
+          from 180deg at 50% 50%,
           #F87171 0deg,
           #FCD34D 180deg,
           #F472B6 360deg
         );
         animation: rotateGlow 3s linear infinite;
-        transform: translate(-50%, -50%);
       }
 
       @keyframes rotateGlow {
