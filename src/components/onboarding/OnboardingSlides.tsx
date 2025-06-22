@@ -14,21 +14,21 @@ interface OnboardingSlidesProps {
 const slidesContent = [
   {
     title: "Welcome to ushªOªpp!",
-    description: "Discover unique styles and the latest trends, curated just for you.",
+    description: "Your trusted partner for quality household goods since 1960. Explore our vast collection.",
     image: "/home_1.png",
-    aiHint: "fashion editorial"
+    aiHint: "kitchenware display"
   },
   {
-    title: "Personalized For You",
-    description: "Find what you love with recommendations tailored to your taste.",
+    title: "For Home & Business",
+    description: "Whether you're shopping for your home or stocking your dealership, we offer competitive prices for all.",
     image: "/home_2.png",
-    aiHint: "style moodboard"
+    aiHint: "store shelf"
   },
   {
-    title: "Join Our Community",
-    description: "Get started now to explore exclusive collections and connect with fellow fashion enthusiasts.",
+    title: "Everything You Need",
+    description: "From traditional vessels and cookware to modern appliances, find everything for your household needs.",
     image: "/home_3.png",
-    aiHint: "fashion community"
+    aiHint: "household collage"
   },
 ];
 

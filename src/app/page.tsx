@@ -79,12 +79,12 @@ export default function LandingPage() {
       <div className="absolute inset-0">
         <Image
           src="/home_1.png"
-          alt="Abstract fashion-themed background montage"
+          alt="Abstract household-themed background montage"
           layout="fill"
           objectFit="cover"
           className="opacity-20"
           priority
-          data-ai-hint="fashion abstract"
+          data-ai-hint="household items"
         />
       </div>
       
@@ -105,7 +105,7 @@ export default function LandingPage() {
           ushªOªpp
         </h1>
         <p className="text-xl md:text-2xl text-foreground/80 font-body animate-fade-in-up delay-200">
-          Discover your next style statement. Curated collections, updated daily.
+          Your one-stop destination for quality household goods, from traditional vessels to modern appliances.
         </p>
         <div className="flex flex-col sm:flex-row gap-6 justify-center pt-6 animate-fade-in-up delay-400">
           <Button 

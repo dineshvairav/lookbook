@@ -25,7 +25,7 @@ export function ProductCard({ product }: ProductCardProps) {
             width={600}
             height={800}
             className="object-cover w-full h-96 group-hover:scale-105 transition-transform duration-300"
-            data-ai-hint="fashion clothing"
+            data-ai-hint="household product"
           />
           <div className="absolute top-2 right-2 z-10">
              <WishlistButton product={product} />

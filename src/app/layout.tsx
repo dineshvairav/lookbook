@@ -5,7 +5,7 @@ import Providers from './providers'; // Import Providers
 
 export const metadata: Metadata = {
   title: 'ushªOªpp',
-  description: 'A stylish ushªOªpp of products.',
+  description: 'Your one-stop destination for quality household goods, from traditional vessels to modern appliances.',
 };
 
 export default function RootLayout({

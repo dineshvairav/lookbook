@@ -14,9 +14,9 @@ export default function TermsOfServicePage() {
           <h2 className="font-headline">1. Agreement to Terms</h2>
           <p>
             These Terms of Service constitute a legally binding agreement made between you,
-            whether personally or on behalf of an entity (“you”) and ushªOªpp
-            (“we,” “us” or “our”), concerning your access to and use of the
-            [usha1960.trade] website as well as any other media form, media channel,
+            whether personally or on behalf of an entity (“you”) and Usha Metals & Agency, operating as
+            ushªOªpp (“we,” “us” or “our”), concerning your access to and use of the
+            usha1960.trade website as well as any other media form, media channel,
             mobile website or mobile application related, linked, or otherwise connected
             thereto (collectively, the “Site” or "Services").
           </p>
@@ -63,18 +63,17 @@ export default function TermsOfServicePage() {
             make the Site available. The Site may not be used in connection with any
             commercial endeavors except those that are specifically endorsed or approved by us.
           </p>
-          <p>As a user of the Site, you agree not to: [List a few prohibited activities relevant to an e-commerce/ushªOªpp, e.g., systematic data scraping, unauthorized framing, interfering with security features, etc.]</p>
+          <p>As a user of the Site, you agree not to engage in unauthorized data scraping, interfere with security features, or use the site for any illegal or unauthorized purpose.</p>
 
           <h2 className="font-headline">6. Purchases and Payment</h2>
           <p>
-            We accept the following forms of payment: [Visa, Mastercard, American Express, PayPal - Adjust as needed].
-            You agree to provide current, complete, and accurate purchase and account information for all purchases made via the Site. Sales tax will be added to the price of purchases as required by law. All payments shall be in [Your Currency, e.g., USD, INR].
+            We may accept various forms of payment. 
+            You agree to provide current, complete, and accurate purchase and account information for all purchases made via the Site. Sales tax will be added to the price of purchases as required by law. All payments shall be in Indian Rupees (INR).
           </p>
           
           <h2 className="font-headline">7. Return/Refund Policy</h2>
           <p>
-            Please review our Return Policy posted on the Site prior to making any purchases.
-            (Note: A separate Return Policy page would typically exist). For now, we can say: All sales are final/Please contact customer service for returns.
+            All sales are considered final. Please contact customer service for any issues regarding your purchase.
           </p>
 
           <h2 className="font-headline">8. Term and Termination</h2>
@@ -97,8 +96,8 @@ export default function TermsOfServicePage() {
           <h2 className="font-headline">10. Governing Law</h2>
           <p>
             These Terms of Service and your use of the Site are governed by and construed
-            in accordance with the laws of [Your State/Country] applicable to agreements
-            made and to be entirely performed within [INDIA], without regard
+            in accordance with the laws of India applicable to agreements
+            made and to be entirely performed within India, without regard
             to its conflict of law principles.
           </p>
           
@@ -118,15 +117,13 @@ export default function TermsOfServicePage() {
             information regarding use of the Site, please contact us at:
           </p>
           <p>
-            ushªOªpp
+            Usha Metals & Agency
             <br />
-            [Usha Metals & Agency]
+            Fancy Bazaar Road
             <br />
-            [Fancy Bazaar Road]
+            via Aramanapady, Changanacherry, 686101
             <br />
-            [via Aramanapady, Changanacherry, 686101]
-            <br />
-            [INDIA]
+            INDIA
             <br />
             info@usha1960.trade
           </p>

@@ -20,7 +20,7 @@ export default function PrivacyPolicyPage() {
           </p>
           <p>
             This privacy notice describes how we might use your information if you:
-            Visit our website at [Your Website URL], download and use our mobile application,
+            Visit our website at usha1960.trade, download and use our mobile application,
             or engage with us in other related ways ― including any sales, marketing, or events.
             In this privacy notice, if we refer to: "Website," we are referring to any website of
             ours that references or links to this policy; "App," we are referring to any application
@@ -117,15 +117,13 @@ export default function PrivacyPolicyPage() {
             info@usha1960.trade or by post to:
           </p>
           <p>
-            ushªOªpp
+            Usha Metals & Agency
             <br />
-            [Usha Metals & Agency]
+            Fancy Bazaar
             <br />
-            [Fancy Bazaar]
+            Changanacherry, Kerala, 686101
             <br />
-            [Changanacherry, Kerala, 686101]
-            <br />
-            [INDIA]
+            INDIA
           </p>
         </div>
       </main>

@@ -19,8 +19,8 @@ export function CategoryCard({ category, isActive, onClick }: CategoryCardProps)
   // Determine AI hint based on whether the image is a generic placeholder
   const isGenericPlaceholder = imageToUse.includes('placehold.co');
   const aiHint = isGenericPlaceholder 
-    ? (category.name.toLowerCase().split(" ").slice(0, 2).join(" ") + (category.name.toLowerCase() === "all" ? "" : " fashion") || "abstract fashion").trim()
-    : "category fashion";
+    ? (category.name.toLowerCase().split(" ").slice(0, 2).join(" ") + (category.name.toLowerCase() === "all" ? "household goods" : " household item") || "household item").trim()
+    : "category item";
 
   return (
     <Card
