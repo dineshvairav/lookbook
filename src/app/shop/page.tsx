@@ -43,7 +43,7 @@ export default function ShopPage() {
         });
         
         setCategoriesData([
-          { id: 'all', name: 'All', imageUrl: 'https://placehold.co/300x200/A9A9A9/FFFFFF.png' },
+          { id: 'all', name: 'All', imageUrl: '/ChatGPT.png' },
           ...fetchedCategories
         ]);
         setIsLoadingCategories(false);
