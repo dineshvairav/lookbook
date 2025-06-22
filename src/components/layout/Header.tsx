@@ -7,7 +7,7 @@ import { ThemeToggle } from "./ThemeToggle";
 import { AuthDialog } from "@/components/auth/AuthDialog";
 import { UserNav } from "@/components/auth/UserNav";
 import { useAuth } from "@/contexts/AuthContext";
-import { Heart, Menu, Search, X } from "lucide-react";
+import { Heart, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -21,9 +21,31 @@ import {
 } from "@/components/ui/sheet";
 import { useRouter } from "next/navigation";
 
+
+const AISearchIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className="h-5 w-5"
+  >
+    <path d="m14 7-1-2-1 2-2 1 2 1 1 2 1-2 2-1-2-1Z" />
+    <circle cx="11" cy="11" r="8" />
+    <path d="m21 21-4.3-4.3" />
+  </svg>
+);
+
+
 export function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchValue, setSearchValue] = useState("");
   const { user, isLoading } = useAuth();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
@@ -32,18 +54,19 @@ export function Header() {
 
   const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const query = (formData.get("search") as string)?.trim();
+    const query = searchValue.trim();
     
     if (query) {
         closeMobileMenu();
         setIsSearchOpen(false);
-        e.currentTarget.reset();
+        setSearchValue("");
+        searchInputRef.current?.blur();
         router.push(`/search?q=${encodeURIComponent(query)}`);
     }
   };
 
   return (
+    <>
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 max-w-screen-2xl items-center justify-between mx-auto px-4 sm:px-6 lg:px-8">
         <Link href="/" className="text-2xl font-bold font-headline text-primary hover:opacity-80 transition-opacity">
@@ -52,39 +75,47 @@ export function Header() {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-4 lg:space-x-6">
-          <form onSubmit={handleSearchSubmit} className="flex items-center">
-             <div className={cn(
-                "flex items-center h-9 rounded-md border transition-all duration-300 ease-in-out",
-                isSearchOpen ? "w-56 bg-background border-input" : "w-9 bg-transparent border-transparent"
-              )}>
-              <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-9 w-9 shrink-0"
-                  onClick={() => {
-                      setIsSearchOpen(true);
-                      searchInputRef.current?.focus();
-                  }}
-              >
-                  <Search className="h-5 w-5" />
-              </Button>
-              <input
-                  ref={searchInputRef}
-                  type="search"
-                  name="search"
-                  placeholder="Search products..."
-                  className={cn(
-                      "flex-grow bg-transparent h-full outline-none text-sm transition-all duration-300 ease-in-out placeholder:text-muted-foreground",
-                      isSearchOpen ? "w-full opacity-100 pl-1 pr-2" : "w-0 opacity-0 p-0"
-                  )}
-                  onBlur={() => {
-                      if (!searchInputRef.current?.value) {
-                          setIsSearchOpen(false);
-                      }
-                  }}
-              />
-            </div>
+          <form onSubmit={handleSearchSubmit} className="relative flex items-center h-9">
+            <div className={cn(
+              "absolute -inset-px rounded-full transition-opacity duration-300",
+              isSearchOpen && searchValue ? "opacity-100 search-glow-active" : "opacity-0"
+            )} />
+
+            <Input
+              ref={searchInputRef}
+              type="search"
+              name="search"
+              value={searchValue}
+              onChange={(e) => setSearchValue(e.target.value)}
+              onFocus={() => setIsSearchOpen(true)}
+              onBlur={() => {
+                if (!searchValue) {
+                  setIsSearchOpen(false);
+                }
+              }}
+              placeholder="AI Search..."
+              className={cn(
+                "relative h-9 rounded-full border border-input bg-background pl-10 pr-4 text-sm transition-all duration-300 ease-in-out focus-visible:ring-0 focus-visible:ring-offset-0",
+                isSearchOpen ? "w-56" : "w-9 cursor-pointer"
+              )}
+            />
+
+            <Button
+              type="submit"
+              variant="ghost"
+              size="icon"
+              aria-label="Search"
+              className="absolute left-0 h-9 w-9 shrink-0 rounded-full"
+              onClick={(e) => {
+                if (!isSearchOpen) {
+                  e.preventDefault();
+                  setIsSearchOpen(true);
+                  searchInputRef.current?.focus();
+                }
+              }}
+            >
+              <AISearchIcon />
+            </Button>
           </form>
           
           <Link
@@ -137,10 +168,14 @@ export function Header() {
                     <Input
                         name="search"
                         type="search"
-                        placeholder="Search products..."
+                        placeholder="AI Search..."
                         className="h-10 pl-10 w-full"
+                        value={searchValue}
+                        onChange={(e) => setSearchValue(e.target.value)}
                     />
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <button type="submit" className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" aria-label="Search">
+                      <AISearchIcon />
+                    </button>
                  </form>
               </div>
 
@@ -200,5 +235,33 @@ export function Header() {
         </div>
       </div>
     </header>
+    <style jsx global>{`
+      .search-glow-active {
+        content: '';
+        z-index: -1;
+        position: absolute;
+        inset: 0;
+        border-radius: 9999px;
+        padding: 1.5px;
+        background: conic-gradient(from 180deg at 50% 50%, #C0B283 0deg, #C4A4A4 120deg, #8FBC8F 240deg, #C0B283 360deg);
+        animation: rotateGlow 3s linear infinite;
+        -webkit-mask: 
+          linear-gradient(#fff 0 0) content-box,
+          linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+      }
+
+      .dark .search-glow-active {
+         background: conic-gradient(from 180deg at 50% 50%, #CFB53B 0deg, #37474F 120deg, #2A8C82 240deg, #CFB53B 360deg);
+      }
+
+      @keyframes rotateGlow {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    `}</style>
+    </>
   );
 }
