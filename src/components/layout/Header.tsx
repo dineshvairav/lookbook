@@ -77,8 +77,8 @@ export function Header() {
         <nav className="hidden md:flex items-center space-x-4 lg:space-x-6">
           <form onSubmit={handleSearchSubmit} className="relative flex items-center h-9">
             <div className={cn(
-              "absolute -inset-px rounded-full transition-opacity duration-300",
-              isSearchOpen && searchValue ? "opacity-100 search-glow-active" : "opacity-0"
+              "absolute -inset-px rounded-lg transition-opacity duration-300",
+              isSearchOpen && searchValue ? "search-glow-active" : "opacity-0"
             )} />
 
             <Input
@@ -95,7 +95,7 @@ export function Header() {
               }}
               placeholder="AI Search..."
               className={cn(
-                "relative h-9 rounded-full border border-input bg-background pl-10 pr-4 text-sm transition-all duration-300 ease-in-out focus-visible:ring-0 focus-visible:ring-offset-0",
+                "relative h-9 rounded-lg border border-input bg-background pl-10 pr-4 text-sm transition-all duration-300 ease-in-out focus-visible:ring-0 focus-visible:ring-offset-0",
                 isSearchOpen ? "w-56" : "w-9 cursor-pointer"
               )}
             />
@@ -105,7 +105,7 @@ export function Header() {
               variant="ghost"
               size="icon"
               aria-label="Search"
-              className="absolute left-0 h-9 w-9 shrink-0 rounded-full"
+              className="absolute left-0 h-9 w-9 shrink-0 rounded-lg"
               onClick={(e) => {
                 if (!isSearchOpen) {
                   e.preventDefault();
@@ -241,9 +241,9 @@ export function Header() {
         z-index: -1;
         position: absolute;
         inset: 0;
-        border-radius: 9999px;
+        border-radius: var(--radius);
         padding: 1.5px;
-        background: conic-gradient(from 180deg at 50% 50%, #C0B283 0deg, #C4A4A4 120deg, #8FBC8F 240deg, #C0B283 360deg);
+        background: conic-gradient(from 180deg at 50% 50%, #EF4444 0deg, #F59E0B 180deg, #EC4899 360deg);
         animation: rotateGlow 3s linear infinite;
         -webkit-mask: 
           linear-gradient(#fff 0 0) content-box,
@@ -253,7 +253,7 @@ export function Header() {
       }
 
       .dark .search-glow-active {
-         background: conic-gradient(from 180deg at 50% 50%, #CFB53B 0deg, #37474F 120deg, #2A8C82 240deg, #CFB53B 360deg);
+         background: conic-gradient(from 180deg at 50% 50%, #F87171 0deg, #FCD34D 180deg, #F472B6 360deg);
       }
 
       @keyframes rotateGlow {
