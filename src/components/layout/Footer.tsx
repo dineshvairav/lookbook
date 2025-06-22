@@ -73,7 +73,7 @@ export function Footer() {
         
         <div className="border-t border-border/40 pt-8 text-center text-sm text-muted-foreground">
           <p>&copy; {currentYear} ushªOªpp. All rights reserved.</p>
-          <p>Designed with elegance and sophistication.</p>
+          <p>Designed with <a href="https://firebase.google.com/" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary transition-colors">Firebase AI Studio</a>.</p>
         </div>
       </div>
     </footer>
