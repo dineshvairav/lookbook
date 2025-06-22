@@ -10,16 +10,13 @@ export default function AboutUsPage() {
       <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="bg-card p-8 md:p-12 rounded-lg shadow-xl">
           <h1 className="text-4xl md:text-5xl font-bold font-headline text-primary mb-8 text-center">
-            About ushªOªpp
+            About Usha Metals & Agency
           </h1>
 
           <section className="mb-12">
             <h2 className="text-3xl font-headline text-accent mb-4">Our Mission</h2>
             <p className="text-lg font-body text-foreground/90 leading-relaxed">
-              At ushªOªpp, our mission is to empower individuals to express their unique style
-              and confidence through curated fashion. We believe that clothing is more than
-              just fabric; it's a form of self-expression, art, and identity. We strive to
-              bring you diverse collections that inspire and delight.
+              Our mission is to be the leading wholesale and retail supplier of quality household goods. We are dedicated to providing a vast selection of products at reasonable prices for our retail customers while being a steadfast partner to small dealers, supporting their growth and success.
             </p>
           </section>
 
@@ -28,25 +25,19 @@ export default function AboutUsPage() {
             <div className="grid md:grid-cols-2 gap-8 items-center">
               <div>
                 <p className="text-lg font-body text-foreground/90 leading-relaxed mb-4">
-                  Founded in [1960], ushªOªpp started as a small passion project by a group of
-                  fashion enthusiasts who wanted to create a platform that celebrated individuality
-                  and timeless style. We noticed a gap in the market for a curated space that
-                  offered not just products, but inspiration and a sense of community.
+                  Founded in 1960, Usha Metals & Agency has grown from a humble beginning into a cornerstone of the community for household necessities. For over six decades, we have built a legacy of trust, supplying everything from traditional aluminum, stainless steel, and brass vessels to modern small appliances and elegant crockery.
                 </p>
                 <p className="text-lg font-body text-foreground/90 leading-relaxed">
-                  Over the years, we've grown into a beloved destination for those seeking
-                  high-quality, stylish pieces that tell a story. Our commitment to ethical
-                  sourcing, customer satisfaction, and staying ahead of trends (while honoring classics)
-                  remains at the heart of everything we do.
+                  Our journey has been one of continuous adaptation and commitment to our customers. We pride ourselves on understanding the needs of both individual households and small businesses, offering a diverse inventory that includes cookware, glassware, and unique presentation articles, ensuring quality and value in every item.
                 </p>
               </div>
               <div className="relative aspect-video rounded-lg overflow-hidden shadow-md">
                 <Image
                   src="https://placehold.co/600x400.png"
-                  alt="Our Team or Brand Story"
+                  alt="Our Store or Products"
                   layout="fill"
                   objectFit="cover"
-                  data-ai-hint="team fashion"
+                  data-ai-hint="store interior"
                 />
               </div>
             </div>
@@ -56,12 +47,12 @@ export default function AboutUsPage() {
             <h2 className="text-3xl font-headline text-accent mb-4">Our Values</h2>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {[
-                { title: "Individuality", description: "Celebrating unique styles and personal expression." },
-                { title: "Quality", description: "Offering well-crafted, durable, and beautiful pieces." },
-                { title: "Inspiration", description: "Curating collections that spark creativity and confidence." },
-                { title: "Community", description: "Fostering a welcoming space for fashion lovers." },
-                { title: "Integrity", description: "Operating ethically and transparently in all we do." },
-                { title: "Customer Focus", description: "Prioritizing the needs and satisfaction of our customers." },
+                { title: "Legacy & Trust", description: "Serving our community with reliability and integrity since 1960." },
+                { title: "Quality & Variety", description: "Offering a wide range of durable, high-quality household goods." },
+                { title: "Fair Pricing", description: "Providing reasonable and transparent prices for all customers." },
+                { title: "Dealer Partnership", description: "Committing to the success and growth of our small dealer network." },
+                { title: "Customer Focus", description: "Prioritizing the diverse needs of both retail and wholesale clients." },
+                { title: "Integrity", description: "Operating our business with honesty and strong ethical principles." },
               ].map((value) => (
                 <div key={value.title} className="bg-background p-6 rounded-md shadow">
                   <h3 className="text-xl font-headline text-primary mb-2">{value.title}</h3>
@@ -72,11 +63,9 @@ export default function AboutUsPage() {
           </section>
 
           <section>
-            <h2 className="text-3xl font-headline text-accent mb-6 text-center">Meet The (Placeholder) Team</h2>
+            <h2 className="text-3xl font-headline text-accent mb-6 text-center">Meet The Team</h2>
             <p className="text-lg font-body text-foreground/90 leading-relaxed text-center">
-              While we're a passionate and growing team, we're a bit camera shy for now!
-              Rest assured, a dedicated group of fashion curators, tech wizards, and customer
-              support heroes are working behind the scenes to bring you the best ushªOªpp experience.
+              As a long-standing establishment, our strength comes from the dedicated team that has been with us through the years. While we're preparing for a proper photoshoot, rest assured a passionate group of sourcing experts, sales associates, and support staff are working behind the scenes to bring you the best products and service.
             </p>
             <div className="mt-6 flex justify-center">
                <Image
@@ -85,7 +74,7 @@ export default function AboutUsPage() {
                   width={800}
                   height={300}
                   className="rounded-lg shadow-md object-cover"
-                  data-ai-hint="team abstract"
+                  data-ai-hint="team portrait"
                 />
             </div>
           </section>
