@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -76,29 +75,36 @@ export function Header() {
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-4 lg:space-x-6">
           <form onSubmit={handleSearchSubmit} className="relative flex items-center h-9">
-            <div className={cn(
-              "absolute -inset-px rounded-lg transition-opacity duration-300",
-              isSearchOpen && searchValue ? "search-glow-active" : "opacity-0"
-            )} />
-
-            <Input
-              ref={searchInputRef}
-              type="search"
-              name="search"
-              value={searchValue}
-              onChange={(e) => setSearchValue(e.target.value)}
-              onFocus={() => setIsSearchOpen(true)}
-              onBlur={() => {
-                if (!searchValue) {
-                  setIsSearchOpen(false);
-                }
-              }}
-              placeholder="AI Search..."
+            <div
               className={cn(
-                "relative h-9 rounded-lg border border-input bg-background pl-10 pr-4 text-sm transition-all duration-300 ease-in-out focus-visible:ring-0 focus-visible:ring-offset-0",
-                isSearchOpen ? "w-56" : "w-9 cursor-pointer"
+                "relative transition-all duration-300 ease-in-out",
+                isSearchOpen ? "w-56" : "w-9",
+                isSearchOpen && searchValue && "p-[1.5px] rounded-lg search-container-with-glow"
               )}
-            />
+            >
+              <Input
+                ref={searchInputRef}
+                type="search"
+                name="search"
+                value={searchValue}
+                onChange={(e) => setSearchValue(e.target.value)}
+                onFocus={() => setIsSearchOpen(true)}
+                onBlur={() => {
+                  if (!searchValue) {
+                    setIsSearchOpen(false);
+                  }
+                }}
+                placeholder="AI Search..."
+                className={cn(
+                  "relative h-9 w-full bg-background pl-10 pr-4 text-sm transition-all duration-300 ease-in-out focus-visible:ring-0 focus-visible:ring-offset-0",
+                  isSearchOpen ? "cursor-text" : "cursor-pointer",
+                  // If glowing, remove border and adjust radius. Otherwise, use default input border.
+                  isSearchOpen && searchValue
+                    ? "border-0 rounded-[calc(var(--radius)-1.5px)]"
+                    : "border border-input rounded-lg"
+                )}
+              />
+            </div>
 
             <Button
               type="submit"
@@ -236,29 +242,32 @@ export function Header() {
       </div>
     </header>
     <style jsx global>{`
-      .search-glow-active {
-        content: '';
-        z-index: -1;
-        position: absolute;
-        inset: 0;
-        border-radius: var(--radius);
-        padding: 1.5px;
-        background: conic-gradient(from 180deg at 50% 50%, #EF4444 0deg, #F59E0B 180deg, #EC4899 360deg);
-        animation: rotateGlow 3s linear infinite;
-        -webkit-mask: 
-          linear-gradient(#fff 0 0) content-box,
-          linear-gradient(#fff 0 0);
-        -webkit-mask-composite: xor;
-        mask-composite: exclude;
+      .search-container-with-glow {
+        overflow: hidden;
+        position: relative;
+        z-index: 0;
       }
-
-      .dark .search-glow-active {
-         background: conic-gradient(from 180deg at 50% 50%, #F87171 0deg, #FCD34D 180deg, #F472B6 360deg);
+      .search-container-with-glow::before {
+        content: '';
+        position: absolute;
+        z-index: -1;
+        top: 50%;
+        left: 50%;
+        width: 250%;
+        height: 250%;
+        background: conic-gradient(
+          from 180deg at 50% 50%,
+          #F87171 0deg,
+          #FCD34D 180deg,
+          #F472B6 360deg
+        );
+        animation: rotateGlow 3s linear infinite;
+        transform: translate(-50%, -50%);
       }
 
       @keyframes rotateGlow {
         to {
-          transform: rotate(360deg);
+          transform: translate(-50%, -50%) rotate(360deg);
         }
       }
     `}</style>
