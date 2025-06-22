@@ -108,26 +108,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!password) throw new Error("Password is required for email signup.");
     setIsLoading(true);
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const firebaseUser = userCredential.user;
-      
-      const userDocRef = doc(db, "users", firebaseUser.uid);
-      const userName = firebaseUser.displayName || firebaseUser.email?.split('@')[0];
-      const userAvatar = firebaseUser.photoURL || null;
-
-      await setDoc(userDocRef, {
-        uid: firebaseUser.uid, // Not strictly necessary if doc ID is uid, but good for consistency
-        email: firebaseUser.email,
-        name: userName,
-        isDealer: false, 
-        isAdmin: false,
-        phoneNumber: null, 
-        address: null,     
-        avatarUrl: userAvatar,   
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-      // onAuthStateChanged will handle setting user state and setIsLoading(false)
+      await createUserWithEmailAndPassword(auth, email, password);
+      // onAuthStateChanged will handle setting the user, creating the Firestore doc, and setting isLoading to false.
+      // This avoids a race condition and centralizes new user creation logic.
     } catch (error: any) {
       setIsLoading(false);
       if (error.code === 'auth/email-already-in-use') {
