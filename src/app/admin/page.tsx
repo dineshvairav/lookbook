@@ -58,6 +58,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 
 const MAX_SHARED_FILE_SIZE_MB = 1;
@@ -160,6 +161,7 @@ export default function AdminPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [imagesMarkedForDeletion, setImagesMarkedForDeletion] = useState<string[]>([]);
   const [categoriesList, setCategoriesList] = useState<Category[]>([]);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   const [isSubmittingCategory, setIsSubmittingCategory] = useState(false);
@@ -490,52 +492,71 @@ export default function AdminPage() {
     }
   };
 
+  const handleMarkImageForDeletion = (imageUrl: string) => {
+    setImagesMarkedForDeletion(prev => {
+      if (prev.includes(imageUrl)) {
+        return prev.filter(url => url !== imageUrl); // Unmark for deletion
+      }
+      return [...prev, imageUrl]; // Mark for deletion
+    });
+  };
 
   const onProductSubmit: SubmitHandler<ProductFormValues> = async (data) => {
     if (!user || !user.isAdmin) {
       toast({ title: "Unauthorized", description: "Permission denied.", variant: "destructive" });
       return;
     }
-    setIsSubmittingProduct(true);
-    const imageFiles: FileList | null | undefined = data.productImages;
 
-    // Validation for new products
-    if (!editingProduct && (!imageFiles || imageFiles.length === 0)) {
-        toast({title: "Image Required", description: "At least one product image is required for new products.", variant: "destructive"});
-        setIsSubmittingProduct(false);
-        return;
+    const isCreating = !editingProduct;
+    const hasNewImages = data.productImages && data.productImages.length > 0;
+    const keptExistingImages = editingProduct?.images?.filter(img => !imagesMarkedForDeletion.includes(img)) || [];
+    
+    if (isCreating && !hasNewImages) {
+      toast({ title: "Image Required", description: "At least one product image is required for new products.", variant: "destructive" });
+      return;
+    }
+    if (!isCreating && !hasNewImages && keptExistingImages.length === 0) {
+      toast({ title: "Image Required", description: "A product must have at least one image.", variant: "destructive" });
+      return;
     }
 
+    setIsSubmittingProduct(true);
     try {
-      let newImageUrls: string[] = editingProduct?.images || [];
-      let primaryImageUrl = editingProduct?.imageUrl;
+      const docRef = editingProduct ? doc(db, "products", editingProduct.id) : doc(collection(db, "products"));
+      const productId = docRef.id;
 
-      // If new images are uploaded, they replace all old ones.
-      if (imageFiles && imageFiles.length > 0) {
-        // 1. Delete old images from storage if editing an existing product
-        if (editingProduct && editingProduct.images && editingProduct.images.length > 0) {
-          const deletePromises = editingProduct.images.map(url => {
-            const oldPath = getStoragePathFromUrl(url);
-            if (oldPath) {
-              return deleteObject(storageRef(storage, oldPath)).catch(e => console.warn("Old image deletion failed (might not exist):", e));
-            }
-            return Promise.resolve();
-          });
-          await Promise.all(deletePromises);
-        }
-
-        // 2. Upload new images
-        const productIdForPath = editingProduct?.id || doc(collection(db, "products")).id;
-        const uploadPromises = Array.from(imageFiles).map(file => {
-          const imagePath = `product-images/${productIdForPath}/${Date.now()}-${file.name}`;
+      // 1. Upload new images
+      let newImageUrls: string[] = [];
+      if (hasNewImages) {
+        const uploadPromises = Array.from(data.productImages!).map(file => {
+          const imagePath = `product-images/${productId}/${Date.now()}-${file.name}`;
           const imageFileRef = storageRef(storage, imagePath);
           return uploadBytes(imageFileRef, file).then(() => getDownloadURL(imageFileRef));
         });
-
         newImageUrls = await Promise.all(uploadPromises);
-        primaryImageUrl = newImageUrls[0] || undefined;
+      }
+
+      // 2. Delete marked images from storage
+      if (imagesMarkedForDeletion.length > 0) {
+        const deletePromises = imagesMarkedForDeletion.map(url => {
+          const path = getStoragePathFromUrl(url);
+          if (path) return deleteObject(storageRef(storage, path)).catch(e => console.warn("Failed to delete old image", e));
+          return Promise.resolve();
+        });
+        await Promise.all(deletePromises);
       }
       
+      // 3. Combine image lists
+      const finalImageUrls = [...keptExistingImages, ...newImageUrls];
+      
+      // Re-check after operations, just in case.
+      if (finalImageUrls.length === 0) {
+        toast({ title: "Image Required", description: "A product must have at least one image.", variant: "destructive" });
+        setIsSubmittingProduct(false);
+        return;
+      }
+      
+      // 4. Prepare data for Firestore
       const productData = {
         name: data.name,
         description: data.description,
@@ -544,23 +565,25 @@ export default function AdminPage() {
         dp: data.dp || null,
         category: data.category,
         features: data.features || '',
-        imageUrl: primaryImageUrl || '',
-        images: newImageUrls,
+        imageUrl: finalImageUrls[0],
+        images: finalImageUrls,
         slug: data.name.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, ''),
         updatedAt: serverTimestamp(),
       };
 
+      // 5. Update or create document
       if (editingProduct) {
-        await updateDoc(doc(db, "products", editingProduct.id), productData);
+        await updateDoc(docRef, productData);
         toast({ title: "Product Updated", description: `${data.name} has been updated.` });
       } else {
-        const newProductId = doc(collection(db, "products")).id;
-        await setDoc(doc(db, "products", newProductId), { ...productData, createdAt: serverTimestamp() });
+        await setDoc(docRef, { ...productData, createdAt: serverTimestamp() });
         toast({ title: "Product Added", description: `${data.name} has been added.` });
       }
       
+      // 6. Cleanup
       resetProductForm();
       setEditingProduct(null);
+      setImagesMarkedForDeletion([]);
       fetchProducts();
 
     } catch (error: any) {
@@ -571,8 +594,10 @@ export default function AdminPage() {
     }
   };
 
+
   const handleEditProductClick = (product: Product) => {
     setEditingProduct(product);
+    setImagesMarkedForDeletion([]);
     setProductFormValue("name", product.name);
     setProductFormValue("description", product.description);
     setProductFormValue("mrp", product.mrp || null);
@@ -587,6 +612,7 @@ export default function AdminPage() {
   const cancelProductEdit = () => {
     setEditingProduct(null);
     resetProductForm();
+    setImagesMarkedForDeletion([]);
   };
 
 
@@ -949,7 +975,7 @@ export default function AdminPage() {
                       type="file"
                       {...registerCategory("categoryImage")}
                       accept={ACCEPTED_CATEGORY_IMAGE_TYPES.join(',')}
-                      className="file:mr-4 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                      className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
                       disabled={isSubmittingCategory}
                     />
                     {categoryErrors.categoryImage && <p className="text-sm text-destructive">{categoryErrors.categoryImage.message as string}</p>}
@@ -1119,34 +1145,52 @@ export default function AdminPage() {
 
                   <div className="space-y-2">
                     <Label htmlFor="productImages" className="font-body">
-                      Product Images {editingProduct ? '(Upload to replace all existing)' : ''} (Max ${MAX_PRODUCT_IMAGE_SIZE_MB}MB each)
+                      Product Images (Max ${MAX_PRODUCT_IMAGE_SIZE_MB}MB each)
                     </Label>
                     <Input
                       id="productImages"
                       type="file"
                       {...registerProduct("productImages")}
                       accept={ACCEPTED_PRODUCT_IMAGE_TYPES.join(',')}
-                      className="file:mr-4 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                      className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
                       disabled={isSubmittingProduct}
                       multiple
                     />
                     {productErrors.productImages && <p className="text-sm text-destructive">{productErrors.productImages.message as string}</p>}
+                    
                     {editingProduct && editingProduct.images && editingProduct.images.length > 0 && (
-                        <div className="mt-4">
-                            <p className="text-sm font-medium text-muted-foreground mb-2">Current Images:</p>
-                            <div className="flex flex-wrap gap-2">
-                                {editingProduct.images.map((imgUrl, index) => (
-                                    <Image
-                                        key={index}
-                                        src={imgUrl}
-                                        alt={`Current product image ${index + 1}`}
-                                        width={80}
-                                        height={80}
-                                        className="rounded object-cover aspect-square"
-                                    />
-                                ))}
-                            </div>
-                        </div>
+                      <div className="mt-4">
+                          <p className="text-sm font-medium text-muted-foreground mb-2">Current Images (Hover to see delete button):</p>
+                          <div className="flex flex-wrap gap-2">
+                              {editingProduct.images.map((imgUrl, index) => (
+                                  <div key={imgUrl} className="relative group">
+                                      <Image
+                                          src={imgUrl}
+                                          alt={`Current product image ${index + 1}`}
+                                          width={80}
+                                          height={80}
+                                          className={cn(
+                                              "rounded object-cover aspect-square transition-opacity",
+                                              imagesMarkedForDeletion.includes(imgUrl) && "opacity-40 border-2 border-destructive"
+                                          )}
+                                      />
+                                      <button
+                                          type="button"
+                                          onClick={() => handleMarkImageForDeletion(imgUrl)}
+                                          className="absolute top-0.5 right-0.5 flex items-center justify-center bg-destructive text-destructive-foreground rounded-full h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                          aria-label="Mark image for deletion"
+                                      >
+                                          <X className="h-3 w-3" />
+                                      </button>
+                                      {imagesMarkedForDeletion.includes(imgUrl) && (
+                                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none bg-black/40 rounded">
+                                          <Trash2 className="h-6 w-6 text-destructive-foreground" />
+                                        </div>
+                                      )}
+                                  </div>
+                              ))}
+                          </div>
+                      </div>
                     )}
                   </div>
                   <div className="flex gap-2">
@@ -1332,7 +1376,7 @@ export default function AdminPage() {
                     type="file"
                     {...registerSharedFile("file")}
                     accept={ACCEPTED_SHARED_FILE_TYPES.join(',')}
-                    className="file:mr-4 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                    className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
                     disabled={isUploadingSharedFile}
                   />
                   {sharedFileErrors.file && <p className="text-sm text-destructive">{sharedFileErrors.file.message as string}</p>}
