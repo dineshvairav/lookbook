@@ -92,10 +92,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       await signInWithEmailAndPassword(auth, email, password);
       // onAuthStateChanged will handle setting user and setIsLoading(false)
-    } catch (error) {
+    } catch (error: any) {
       setIsLoading(false);
-      console.error("Firebase login error:", error);
-      throw error; 
+      console.error("Firebase login error:", error.code);
+      if (error.code === 'auth/account-exists-with-different-credential') {
+        throw new Error("This email is already associated with a Google account. Please use 'Sign in with Google' instead.");
+      }
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+        throw new Error("Invalid email or password. Please try again.");
+      }
+      throw error;
     }
   };
 
@@ -123,10 +129,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         updatedAt: serverTimestamp(),
       });
       // onAuthStateChanged will handle setting user state and setIsLoading(false)
-    } catch (error) {
+    } catch (error: any) {
       setIsLoading(false);
-      console.error("Firebase signup error:", error);
-      throw error; 
+      console.error("Firebase signup error:", error.code);
+      if (error.code === 'auth/email-already-in-use') {
+        throw new Error('This email is already in use. Please log in or use a different email.');
+      }
+      if (error.code === 'auth/weak-password') {
+        throw new Error('The password is too weak. Please use at least 6 characters.');
+      }
+      throw error;
     }
   };
 
