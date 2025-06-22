@@ -19,24 +19,27 @@ import {
   SheetTitle,
   SheetDescription
 } from "@/components/ui/sheet";
+import { useRouter } from "next/navigation";
 
 export function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const { user, isLoading } = useAuth();
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
 
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
   const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const query = searchInputRef.current?.value;
+    const formData = new FormData(e.currentTarget);
+    const query = (formData.get("search") as string)?.trim();
+    
     if (query) {
-        console.log(`Searching for: ${query}`);
-        // In a real app, you'd redirect:
-        // router.push(`/search?q=${encodeURIComponent(query)}`);
+        closeMobileMenu();
         setIsSearchOpen(false);
-        searchInputRef.current.value = "";
+        e.currentTarget.reset();
+        router.push(`/search?q=${encodeURIComponent(query)}`);
     }
   };
 
@@ -69,6 +72,7 @@ export function Header() {
               <input
                   ref={searchInputRef}
                   type="search"
+                  name="search"
                   placeholder="Search products..."
                   className={cn(
                       "flex-grow bg-transparent h-full outline-none text-sm transition-all duration-300 ease-in-out placeholder:text-muted-foreground",
@@ -131,12 +135,10 @@ export function Header() {
               <div className="p-4">
                  <form onSubmit={handleSearchSubmit} className="relative">
                     <Input
-                        ref={searchInputRef}
+                        name="search"
                         type="search"
                         placeholder="Search products..."
                         className="h-10 pl-10 w-full"
-                        onFocus={() => setIsSearchOpen(true)}
-                        onBlur={() => setIsSearchOpen(false)}
                     />
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                  </form>
