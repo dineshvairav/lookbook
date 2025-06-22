@@ -2,13 +2,15 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { ThemeToggle } from "./ThemeToggle";
 import { AuthDialog } from "@/components/auth/AuthDialog";
 import { UserNav } from "@/components/auth/UserNav";
 import { useAuth } from "@/contexts/AuthContext";
-import { Heart, Menu, X } from "lucide-react";
+import { Heart, Menu, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 import {
   Sheet,
   SheetContent,
@@ -20,9 +22,23 @@ import {
 
 export function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const { user, isLoading } = useAuth();
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
+
+  const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const query = searchInputRef.current?.value;
+    if (query) {
+        console.log(`Searching for: ${query}`);
+        // In a real app, you'd redirect:
+        // router.push(`/search?q=${encodeURIComponent(query)}`);
+        setIsSearchOpen(false);
+        searchInputRef.current.value = "";
+    }
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -33,6 +49,40 @@ export function Header() {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-4 lg:space-x-6">
+          <form onSubmit={handleSearchSubmit} className="flex items-center">
+             <div className={cn(
+                "flex items-center h-9 rounded-md border transition-all duration-300 ease-in-out",
+                isSearchOpen ? "w-56 bg-background border-input" : "w-9 bg-transparent border-transparent"
+              )}>
+              <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 shrink-0"
+                  onClick={() => {
+                      setIsSearchOpen(true);
+                      searchInputRef.current?.focus();
+                  }}
+              >
+                  <Search className="h-5 w-5" />
+              </Button>
+              <input
+                  ref={searchInputRef}
+                  type="search"
+                  placeholder="Search products..."
+                  className={cn(
+                      "flex-grow bg-transparent h-full outline-none text-sm transition-all duration-300 ease-in-out placeholder:text-muted-foreground",
+                      isSearchOpen ? "w-full opacity-100 pl-1 pr-2" : "w-0 opacity-0 p-0"
+                  )}
+                  onBlur={() => {
+                      if (!searchInputRef.current?.value) {
+                          setIsSearchOpen(false);
+                      }
+                  }}
+              />
+            </div>
+          </form>
+          
           <Link
             href="/shop"
             className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors font-body"
@@ -68,19 +118,31 @@ export function Header() {
             </SheetTrigger>
             <SheetContent side="right" className="w-[300px] sm:w-[360px] p-0 flex flex-col bg-background">
               <SheetHeader className="p-4 border-b border-border/40 text-left">
-                {/* The SheetTitle is now the direct child of SheetHeader as expected for styling & accessibility */}
                 <SheetTitle>
                   <Link href="/" onClick={closeMobileMenu} className="text-xl font-bold font-headline text-primary">
                     ushªOªpp
                   </Link>
                 </SheetTitle>
-                {/* The SheetDescription is provided for screen readers */}
                 <SheetDescription className="sr-only">
                   Main navigation menu for ushªOªpp. Access shop, wishlist, profile, and other settings.
                 </SheetDescription>
               </SheetHeader>
 
-              <nav className="flex-grow flex flex-col space-y-1 p-4">
+              <div className="p-4">
+                 <form onSubmit={handleSearchSubmit} className="relative">
+                    <Input
+                        ref={searchInputRef}
+                        type="search"
+                        placeholder="Search products..."
+                        className="h-10 pl-10 w-full"
+                        onFocus={() => setIsSearchOpen(true)}
+                        onBlur={() => setIsSearchOpen(false)}
+                    />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                 </form>
+              </div>
+
+              <nav className="flex-grow flex flex-col space-y-1 p-4 pt-0">
                 <Link
                   href="/shop"
                   className="text-lg font-medium text-foreground/80 hover:text-primary transition-colors p-3 rounded-md hover:bg-accent/50 block"
@@ -116,7 +178,6 @@ export function Header() {
               </nav>
 
               <div className="mt-auto p-4 border-t border-border/40 space-y-4">
-                {/* Mobile Auth: UserNav for logged-in, AuthDialog for logged-out */}
                 {isLoading ? (
                   <div className="w-full h-10 bg-muted rounded animate-pulse" />
                 ) : user ? (
@@ -127,7 +188,6 @@ export function Header() {
                 ) : (
                   <AuthDialog />
                 )}
-                {/* Mobile Theme Toggle */}
                 <div className="flex justify-between items-center pt-4 border-t border-border/20">
                   <span className="text-sm font-medium text-foreground/80">Theme</span>
                   <ThemeToggle />
