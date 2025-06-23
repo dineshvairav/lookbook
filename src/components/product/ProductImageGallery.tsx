@@ -22,7 +22,7 @@ export function ProductImageGallery({ images, altText }: ProductImageGalleryProp
             alt="No image available"
             width={600}
             height={800}
-            className="object-cover w-full h-auto aspect-[3/4]"
+            className="object-contain w-full h-auto aspect-[3/4]"
             priority
             data-ai-hint="placeholder image"
           />
@@ -44,10 +44,10 @@ export function ProductImageGallery({ images, altText }: ProductImageGalleryProp
             alt={altText}
             width={600}
             height={800}
-            className="object-cover w-full h-auto aspect-[3/4] transition-opacity duration-300 ease-in-out"
+            className="object-contain w-full h-auto aspect-[3/4] transition-opacity duration-300 ease-in-out"
             priority // Prioritize loading the main image
             key={selectedImage} // Re-trigger animation on image change
-            data-ai-hint="fashion product"
+            data-ai-hint="product"
           />
         </CardContent>
       </Card>
@@ -68,7 +68,7 @@ export function ProductImageGallery({ images, altText }: ProductImageGalleryProp
                 alt={`${altText} - thumbnail ${index + 1}`}
                 width={150}
                 height={150}
-                className="object-cover w-full h-full"
+                className="object-contain w-full h-full"
                 data-ai-hint="product detail"
               />
             </button>
