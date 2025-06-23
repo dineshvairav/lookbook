@@ -1,4 +1,3 @@
-
 "use client";
 
 import type { Category } from "@/lib/types";
@@ -35,8 +34,8 @@ export function CategoryCard({ category, isActive, onClick }: CategoryCardProps)
           src={imageToUse}
           alt={category.name}
           layout="fill"
-          objectFit="cover"
-          className="rounded-t-lg"
+          objectFit="contain"
+          className="rounded-t-lg p-2"
           data-ai-hint={aiHint} 
         />
       </CardHeader>
