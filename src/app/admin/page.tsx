@@ -179,7 +179,7 @@ export default function AdminPage() {
   const [isSendingNotification, setIsSendingNotification] = useState(false);
   
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState<{
-    type: 'product' | 'category' | 'sharedFile';
+    type: 'product' | 'category' | 'sharedFile' | 'user';
     id: string;
     name: string;
     storagePath?: string;
@@ -377,7 +377,6 @@ export default function AdminPage() {
 
     try {
       if (type === 'product') {
-        // Delete all images associated with the product
         const imagesToDelete = imageUrls || (imageUrl ? [imageUrl] : []);
         if (imagesToDelete.length > 0) {
           const deletePromises = imagesToDelete.map(url => {
@@ -403,6 +402,10 @@ export default function AdminPage() {
         await deleteDoc(doc(db, "sharedFiles", id));
         toast({ title: "File Deleted", description: `${name} has been deleted.` });
         fetchSharedFiles();
+      } else if (type === 'user') {
+        await deleteDoc(doc(db, "users", id));
+        toast({ title: "User Record Deleted", description: `Firestore record for ${name} has been deleted.` });
+        fetchUsers();
       }
     } catch (error: any) {
       console.error(`Error deleting ${type} ${name}:`, error);
@@ -442,9 +445,6 @@ export default function AdminPage() {
       resetSharedFileForm();
       fetchSharedFiles();
 
-      // --- Send Notification Logic (Simulated) ---
-      // In a real app, this would call a Firebase Cloud Function.
-      // The function would find the user by phone number and send a push notification to their registered device(s).
       const appUrl = window.location.origin;
       const downloadLink = `${appUrl}/downloads?phone=${encodeURIComponent(data.phoneNumber)}`;
 
@@ -898,7 +898,7 @@ export default function AdminPage() {
                         <TableHead>Name</TableHead>
                         <TableHead>Email</TableHead>
                         <TableHead>Roles</TableHead>
-                        <TableHead className="text-center w-[100px]">Actions</TableHead>
+                        <TableHead className="text-center w-[120px]">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -920,15 +920,26 @@ export default function AdminPage() {
                             </div>
                           </TableCell>
                           <TableCell className="text-center">
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => handleEditUserClick(u)}
-                              disabled={u.uid === user.uid && u.isAdmin && usersList.filter(usr => usr.isAdmin).length === 1}
-                            >
-                              <Edit3 className="h-4 w-4" />
-                            </Button>
+                            <div className="flex justify-center gap-2">
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => handleEditUserClick(u)}
+                                disabled={u.uid === user.uid && u.isAdmin && usersList.filter(usr => usr.isAdmin).length === 1}
+                              >
+                                <Edit3 className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => setShowDeleteConfirmModal({ type: 'user', id: u.uid, name: u.name || u.email || 'N/A' })}
+                                disabled={u.uid === user.uid}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -975,7 +986,7 @@ export default function AdminPage() {
                       type="file"
                       {...registerCategory("categoryImage")}
                       accept={ACCEPTED_CATEGORY_IMAGE_TYPES.join(',')}
-                      className="file:mr-4 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                      className="file:mr-4 file:py-2.5 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
                       disabled={isSubmittingCategory}
                     />
                     {categoryErrors.categoryImage && <p className="text-sm text-destructive">{categoryErrors.categoryImage.message as string}</p>}
@@ -1152,7 +1163,7 @@ export default function AdminPage() {
                       type="file"
                       {...registerProduct("productImages")}
                       accept={ACCEPTED_PRODUCT_IMAGE_TYPES.join(',')}
-                      className="file:mr-4 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                      className="file:mr-4 file:py-2.5 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
                       disabled={isSubmittingProduct}
                       multiple
                     />
@@ -1376,7 +1387,7 @@ export default function AdminPage() {
                     type="file"
                     {...registerSharedFile("file")}
                     accept={ACCEPTED_SHARED_FILE_TYPES.join(',')}
-                    className="file:mr-4 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                    className="file:mr-4 file:py-2.5 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
                     disabled={isUploadingSharedFile}
                   />
                   {sharedFileErrors.file && <p className="text-sm text-destructive">{sharedFileErrors.file.message as string}</p>}
@@ -1401,6 +1412,7 @@ export default function AdminPage() {
               <AlertDialogDescription>
                 This action cannot be undone. This will permanently delete the {showDeleteConfirmModal.type} "{showDeleteConfirmModal.name}"
                 { (showDeleteConfirmModal.type === 'product' || showDeleteConfirmModal.type === 'category' || showDeleteConfirmModal.type === 'sharedFile' ) && " and its associated file(s)/image(s) from storage."}
+                { showDeleteConfirmModal.type === 'user' && " from the user database. This does not remove the user from Firebase Authentication."}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -1527,3 +1539,4 @@ export default function AdminPage() {
     </div>
   );
 }
+
