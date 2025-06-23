@@ -203,6 +203,7 @@ export default function AdminPage() {
     handleSubmit: handleSubmitProduct,
     reset: resetProductForm,
     setValue: setProductFormValue,
+    control: productControl,
     formState: { errors: productErrors }
   } = useForm<ProductFormValues>({
     resolver: zodResolver(productFormSchema),
@@ -1041,7 +1042,7 @@ export default function AdminPage() {
                                   alt={category.name}
                                   width={60}
                                   height={60}
-                                  className="rounded-md object-cover aspect-square"
+                                  className="rounded-md object-contain p-1 aspect-square"
                                   data-ai-hint="category item"
                                 />
                               ) : (
@@ -1098,28 +1099,34 @@ export default function AdminPage() {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="productCategory" className="font-body">Category</Label>
-                       <Select
-                        value={editingProduct?.category || undefined}
-                        onValueChange={(value) => setProductFormValue("category", value)}
-                        disabled={isSubmittingProduct || isLoadingCategories}
-                      >
-                        <SelectTrigger id="productCategory">
-                          <SelectValue placeholder="Select a category" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {isLoadingCategories ? (
-                            <SelectItem value="loading" disabled>Loading categories...</SelectItem>
-                          ) : categoriesList.length === 0 ? (
-                            <SelectItem value="no-categories" disabled>No categories available. Add one first.</SelectItem>
-                          ) : (
-                            categoriesList.map((cat) => (
-                              <SelectItem key={cat.id} value={cat.name}>
-                                {cat.name}
-                              </SelectItem>
-                            ))
-                          )}
-                        </SelectContent>
-                      </Select>
+                      <Controller
+                        name="category"
+                        control={productControl}
+                        render={({ field }) => (
+                          <Select
+                            onValueChange={field.onChange}
+                            value={field.value || ""}
+                            disabled={isSubmittingProduct || isLoadingCategories}
+                          >
+                            <SelectTrigger id="productCategory">
+                              <SelectValue placeholder="Select a category" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {isLoadingCategories ? (
+                                <SelectItem value="loading" disabled>Loading categories...</SelectItem>
+                              ) : categoriesList.length === 0 ? (
+                                <SelectItem value="no-categories" disabled>No categories available. Add one first.</SelectItem>
+                              ) : (
+                                categoriesList.map((cat) => (
+                                  <SelectItem key={cat.id} value={cat.name}>
+                                    {cat.name}
+                                  </SelectItem>
+                                ))
+                              )}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
                       {productErrors.category && <p className="text-sm text-destructive">{productErrors.category.message}</p>}
                     </div>
                   </div>
@@ -1539,4 +1546,3 @@ export default function AdminPage() {
     </div>
   );
 }
-
