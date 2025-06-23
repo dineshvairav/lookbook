@@ -986,7 +986,7 @@ export default function AdminPage() {
                       type="file"
                       {...registerCategory("categoryImage")}
                       accept={ACCEPTED_CATEGORY_IMAGE_TYPES.join(',')}
-                      className="file:mr-4 file:py-2.5 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                      className="file:mr-4 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
                       disabled={isSubmittingCategory}
                     />
                     {categoryErrors.categoryImage && <p className="text-sm text-destructive">{categoryErrors.categoryImage.message as string}</p>}
@@ -1163,7 +1163,7 @@ export default function AdminPage() {
                       type="file"
                       {...registerProduct("productImages")}
                       accept={ACCEPTED_PRODUCT_IMAGE_TYPES.join(',')}
-                      className="file:mr-4 file:py-2.5 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                      className="file:mr-4 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
                       disabled={isSubmittingProduct}
                       multiple
                     />
@@ -1387,7 +1387,7 @@ export default function AdminPage() {
                     type="file"
                     {...registerSharedFile("file")}
                     accept={ACCEPTED_SHARED_FILE_TYPES.join(',')}
-                    className="file:mr-4 file:py-2.5 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                    className="file:mr-4 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
                     disabled={isUploadingSharedFile}
                   />
                   {sharedFileErrors.file && <p className="text-sm text-destructive">{sharedFileErrors.file.message as string}</p>}
