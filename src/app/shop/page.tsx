@@ -43,7 +43,7 @@ export default function ShopPage() {
         });
         
         setCategoriesData([
-          { id: 'all', name: 'All', imageUrl: '/ChatGPT.png' },
+          { id: 'all', name: 'All', imageUrl: '/all.png' },
           ...fetchedCategories
         ]);
         setIsLoadingCategories(false);
