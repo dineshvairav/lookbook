@@ -52,7 +52,7 @@ function DownloadsPageContent() {
 
     const resetInactivityTimer = () => {
       clearTimeout(inactivityTimer);
-      inactivityTimer = setTimeout(redirectToShop, 20000); // 20 seconds
+      inactivityTimer = setTimeout(redirectToShop, 15000); // 15 seconds
     };
 
     const activityEvents: (keyof WindowEventMap)[] = [
