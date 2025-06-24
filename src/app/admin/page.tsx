@@ -1333,9 +1333,14 @@ export default function AdminPage() {
                                 className="h-8 w-8"
                                 title="Share on WhatsApp"
                                 onClick={() => {
-                                  const message = `Here is the file you requested: ${file.downloadURL}`;
-                                  // The phone number should be in international format without '+' for the wa.me link.
-                                  const whatsappUrl = `https://wa.me/${file.phoneNumber}?text=${encodeURIComponent(message)}`;
+                                  const appUrl = window.location.origin;
+                                  const userDownloadsLink = `${appUrl}/downloads?phone=${encodeURIComponent(file.phoneNumber)}`;
+                                  const message = `You have new files from ushªOªpp. View them here: ${userDownloadsLink}`;
+                                  
+                                  // For wa.me links, phone number should not have '+' or other symbols.
+                                  const cleanPhoneNumber = file.phoneNumber.replace(/[^0-9]/g, '');
+                                  const whatsappUrl = `https://wa.me/${cleanPhoneNumber}?text=${encodeURIComponent(message)}`;
+                                  
                                   window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
                                 }}
                               >
