@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { Category } from "@/lib/types";
@@ -24,7 +25,7 @@ export function CategoryCard({ category, isActive, onClick }: CategoryCardProps)
   return (
     <Card
       className={cn(
-        "cursor-pointer hover:shadow-lg transition-all duration-300 w-full sm:w-56 md:w-64 flex-shrink-0",
+        "group cursor-pointer overflow-hidden hover:shadow-xl transition-all duration-300 w-full sm:w-56 md:w-64 flex-shrink-0 transform hover:-translate-y-1",
         isActive ? "ring-2 ring-primary shadow-xl" : "ring-1 ring-border"
       )}
       onClick={() => onClick(category.id)}
@@ -35,7 +36,7 @@ export function CategoryCard({ category, isActive, onClick }: CategoryCardProps)
           alt={category.name}
           layout="fill"
           objectFit="contain"
-          className="rounded-t-lg p-2"
+          className="rounded-t-lg p-2 transition-transform duration-300 group-hover:scale-105"
           data-ai-hint={aiHint} 
         />
       </CardHeader>
