@@ -1,7 +1,8 @@
 
 "use client";
 
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { fetchProductsFromFirestore } from "@/lib/data";
@@ -13,8 +14,12 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
 
-export default function ShopPage() {
+function ShopPageContent() {
+  const searchParams = useSearchParams();
+  const categoryQuery = searchParams.get('category');
+
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [categoriesData, setCategoriesData] = useState<CategoryType[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
@@ -42,10 +47,22 @@ export default function ShopPage() {
           fetchedCategories.push({ id: doc.id, ...doc.data() } as CategoryType);
         });
         
-        setCategoriesData([
+        const finalCategories = [
           { id: 'all', name: 'All', imageUrl: '/all.png' },
           ...fetchedCategories
-        ]);
+        ];
+        setCategoriesData(finalCategories);
+
+        // New logic to handle URL parameter
+        if (categoryQuery) {
+            const categoryFromUrl = finalCategories.find(c => c.name.toLowerCase() === categoryQuery.toLowerCase());
+            if (categoryFromUrl) {
+                setSelectedCategoryId(categoryFromUrl.id);
+            }
+        } else {
+            setSelectedCategoryId("all");
+        }
+        
         setIsLoadingCategories(false);
 
       } catch (error) {
@@ -56,7 +73,7 @@ export default function ShopPage() {
       }
     }
     fetchShopData();
-  }, [toast]);
+  }, [toast, categoryQuery]);
 
   const handleCategorySelect = (categoryId: string) => {
     setSelectedCategoryId(categoryId);
@@ -157,5 +174,25 @@ export default function ShopPage() {
       </main>
       <Footer />
     </div>
+  );
+}
+
+function ShopPageSkeleton() {
+    return (
+        <div className="flex flex-col min-h-screen bg-background">
+            <Header />
+            <main className="flex-grow flex items-center justify-center">
+                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            </main>
+            <Footer />
+        </div>
+    );
+}
+
+export default function ShopPage() {
+  return (
+    <Suspense fallback={<ShopPageSkeleton />}>
+      <ShopPageContent />
+    </Suspense>
   );
 }
