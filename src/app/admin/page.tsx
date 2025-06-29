@@ -260,7 +260,7 @@ function AdminPageContent() {
     resolver: zodResolver(notificationFormSchema),
   });
 
-  // Effect to pre-fill phone number from URL query parameter
+  // Effect to pre-fill phone number from URL query parameter and scroll to the upload card
   useEffect(() => {
     const phoneFromQuery = searchParams.get('phoneNumber');
     if (phoneFromQuery) {
@@ -1635,5 +1635,7 @@ export default function AdminPage() {
     </Suspense>
   );
 }
+
+    
 
     
