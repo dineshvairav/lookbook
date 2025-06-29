@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
@@ -187,16 +187,21 @@ export default function AdminPage() {
     imageUrls?: string[]; // For product deletion
   } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
 
   const {
     register: registerSharedFile,
     handleSubmit: handleSubmitSharedFile,
     reset: resetSharedFileForm,
+    setValue: setSharedFileValue,
+    watch: watchSharedFile,
     formState: { errors: sharedFileErrors }
   } = useForm<SharedFileUploadFormValues>({
     resolver: zodResolver(sharedFileUploadSchema),
   });
+
+  const sharedFile = watchSharedFile("file");
 
   const {
     register: registerProduct,
@@ -763,6 +768,33 @@ export default function AdminPage() {
     if (email) return email.substring(0, 2).toUpperCase();
     return 'U';
   };
+  
+  const handleDragEnter = useCallback((e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      setSharedFileValue("file", files, { shouldValidate: true });
+    }
+  }, [setSharedFileValue]);
 
 
   if (authLoading || !user || (user && !user.isAdmin && !authLoading)) {
@@ -987,7 +1019,7 @@ export default function AdminPage() {
                       type="file"
                       {...registerCategory("categoryImage")}
                       accept={ACCEPTED_CATEGORY_IMAGE_TYPES.join(',')}
-                      className="file:mr-4 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                      className="file:mr-4 file:py-2.5 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
                       disabled={isSubmittingCategory}
                     />
                     {categoryErrors.categoryImage && <p className="text-sm text-destructive">{categoryErrors.categoryImage.message as string}</p>}
@@ -1170,7 +1202,7 @@ export default function AdminPage() {
                       type="file"
                       {...registerProduct("productImages")}
                       accept={ACCEPTED_PRODUCT_IMAGE_TYPES.join(',')}
-                      className="file:mr-4 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                      className="file:mr-4 file:py-2.5 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
                       disabled={isSubmittingProduct}
                       multiple
                     />
@@ -1256,7 +1288,7 @@ export default function AdminPage() {
                                 alt={product.name}
                                 width={60}
                                 height={60}
-                                className="rounded-md object-cover aspect-square"
+                                className="rounded-md object-contain aspect-square"
                                 data-ai-hint="product thumbnail"
                               />
                             </TableCell>
@@ -1393,17 +1425,39 @@ export default function AdminPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="file" className="font-body">File (PDF or Image, Max ${MAX_SHARED_FILE_SIZE_MB}MB)</Label>
-                  <Input
-                    id="file"
-                    type="file"
-                    {...registerSharedFile("file")}
-                    accept={ACCEPTED_SHARED_FILE_TYPES.join(',')}
-                    className="file:mr-4 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
-                    disabled={isUploadingSharedFile}
-                  />
-                  {sharedFileErrors.file && <p className="text-sm text-destructive">{sharedFileErrors.file.message as string}</p>}
+                   <Label
+                      htmlFor="file"
+                      onDragEnter={handleDragEnter}
+                      onDragLeave={handleDragLeave}
+                      onDragOver={handleDragOver}
+                      onDrop={handleDrop}
+                      className={cn(
+                          "relative block w-full p-8 border-2 border-dashed rounded-lg cursor-pointer text-center hover:bg-muted/50 transition-colors",
+                          isDragging ? "border-primary bg-primary/10" : "border-input"
+                      )}
+                    >
+                      <div className="flex flex-col items-center justify-center">
+                          <UploadCloud className="w-10 h-10 text-muted-foreground mb-3" />
+                          <span className="font-semibold text-primary">
+                              {sharedFile?.[0]?.name ? 'File selected:' : 'Choose a file or drag it here'}
+                          </span>
+                          {sharedFile?.[0]?.name && <span className="text-sm text-foreground mt-1 truncate max-w-full">{sharedFile[0].name}</span>}
+                          <p className="text-xs text-muted-foreground mt-2">
+                              PDF or Image, Max {MAX_SHARED_FILE_SIZE_MB}MB
+                          </p>
+                      </div>
+                      <Input
+                          id="file"
+                          type="file"
+                          {...registerSharedFile("file")}
+                          accept={ACCEPTED_SHARED_FILE_TYPES.join(',')}
+                          className="sr-only" // Visually hidden but accessible
+                          disabled={isUploadingSharedFile}
+                      />
+                  </Label>
+                  {sharedFileErrors.file && <p className="text-sm text-destructive mt-2">{sharedFileErrors.file.message as string}</p>}
                 </div>
+
 
                 <Button type="submit" disabled={isUploadingSharedFile} className="w-full sm:w-auto">
                   {isUploadingSharedFile ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
