@@ -263,11 +263,12 @@ function AdminPageContent() {
   // Effect to pre-fill phone number from URL query parameter and scroll to the upload card
   useEffect(() => {
     const phoneFromQuery = searchParams.get('phoneNumber');
-    if (phoneFromQuery) {
+    // Run this logic only after auth has finished loading and a phone number is present
+    if (!authLoading && phoneFromQuery) {
       setSharedFileValue('phoneNumber', phoneFromQuery, { shouldValidate: true });
-      document.getElementById('uploadFileCard')?.scrollIntoView({ behavior: 'smooth' });
+      document.getElementById('uploadFileCard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-  }, [searchParams, setSharedFileValue]);
+  }, [searchParams, setSharedFileValue, authLoading]);
 
 
   const fetchProducts = async () => {
@@ -1635,6 +1636,8 @@ export default function AdminPage() {
     </Suspense>
   );
 }
+
+    
 
     
 
