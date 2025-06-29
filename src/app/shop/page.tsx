@@ -75,6 +75,17 @@ function ShopPageContent() {
     fetchShopData();
   }, [toast, categoryQuery]);
 
+  useEffect(() => {
+    const isLoading = isLoadingProducts || isLoadingCategories;
+    // Only scroll if a category is specified in the URL and the data has finished loading
+    if (categoryQuery && !isLoading && productsSectionRef.current) {
+      productsSectionRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }
+  }, [categoryQuery, isLoadingProducts, isLoadingCategories]);
+
   const handleCategorySelect = (categoryId: string) => {
     setSelectedCategoryId(categoryId);
     if (productsSectionRef.current) {
