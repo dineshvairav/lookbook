@@ -1,9 +1,9 @@
 
 "use client";
 
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, Suspense } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Loader2, ShieldAlert, LayoutDashboard, UploadCloud, Send, PackagePlus, ListOrdered, Image as ImageIcon, Edit3, Trash2, Shapes, FolderPlus, ListChecks, ClipboardList, Download, Save, Users, UserCircle2, MessageSquare, X } from 'lucide-react';
@@ -151,9 +151,10 @@ const notificationFormSchema = z.object({
 type NotificationFormValues = z.infer<typeof notificationFormSchema>;
 
 
-export default function AdminPage() {
+function AdminPageContent() {
   const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   
   const [isUploadingSharedFile, setIsUploadingSharedFile] = useState(false);
@@ -258,6 +259,15 @@ export default function AdminPage() {
   } = useForm<NotificationFormValues>({
     resolver: zodResolver(notificationFormSchema),
   });
+
+  // Effect to pre-fill phone number from URL query parameter
+  useEffect(() => {
+    const phoneFromQuery = searchParams.get('phoneNumber');
+    if (phoneFromQuery) {
+      setSharedFileValue('phoneNumber', phoneFromQuery, { shouldValidate: true });
+      document.getElementById('uploadFileCard')?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [searchParams, setSharedFileValue]);
 
 
   const fetchProducts = async () => {
@@ -1019,7 +1029,7 @@ export default function AdminPage() {
                       type="file"
                       {...registerCategory("categoryImage")}
                       accept={ACCEPTED_CATEGORY_IMAGE_TYPES.join(',')}
-                      className="file:mr-4 file:py-2.5 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                      className="file:mr-4 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
                       disabled={isSubmittingCategory}
                     />
                     {categoryErrors.categoryImage && <p className="text-sm text-destructive">{categoryErrors.categoryImage.message as string}</p>}
@@ -1202,7 +1212,7 @@ export default function AdminPage() {
                       type="file"
                       {...registerProduct("productImages")}
                       accept={ACCEPTED_PRODUCT_IMAGE_TYPES.join(',')}
-                      className="file:mr-4 file:py-2.5 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                      className="file:mr-4 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
                       disabled={isSubmittingProduct}
                       multiple
                     />
@@ -1316,7 +1326,7 @@ export default function AdminPage() {
             </CardContent>
           </Card>
 
-          <Card className="shadow-xl">
+          <Card id="manageSharedFilesCard" className="shadow-xl">
             <CardHeader>
               <div className="flex items-center space-x-3">
                 <ClipboardList className="h-8 w-8 text-primary" />
@@ -1399,7 +1409,7 @@ export default function AdminPage() {
             </CardContent>
           </Card>
 
-          <Card className="shadow-xl">
+          <Card id="uploadFileCard" className="shadow-xl scroll-mt-20">
             <CardHeader>
               <div className="flex items-center space-x-3">
                 <UploadCloud className="h-8 w-8 text-primary" />
@@ -1605,3 +1615,25 @@ export default function AdminPage() {
     </div>
   );
 }
+
+function AdminPageSkeleton() {
+  return (
+    <div className="flex flex-col min-h-screen">
+      <Header />
+      <main className="flex-grow flex items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </main>
+      <Footer />
+    </div>
+  );
+}
+
+export default function AdminPage() {
+  return (
+    <Suspense fallback={<AdminPageSkeleton />}>
+      <AdminPageContent />
+    </Suspense>
+  );
+}
+
+    
