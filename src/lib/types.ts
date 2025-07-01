@@ -61,3 +61,9 @@ export interface BannerConfig {
   mode: 'disabled' | 'automatic' | 'manual';
   productId?: string | null;
 }
+
+export interface SocialPreviewConfig {
+  title: string;
+  description: string;
+  imageUrl: string;
+}

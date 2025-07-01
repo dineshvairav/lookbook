@@ -1,6 +1,6 @@
 
 
-import type { Product, Category, BannerConfig } from './types';
+import type { Product, Category, BannerConfig, SocialPreviewConfig } from './types';
 import { db } from '@/lib/firebase'; // Import Firestore db instance
 import { collection, getDocs, orderBy, query, doc, getDoc } from 'firebase/firestore';
 
@@ -72,5 +72,31 @@ export async function getBannerConfig(): Promise<BannerConfig | null> {
   } catch (error) {
     console.error("Error fetching banner config:", error);
     return { mode: 'disabled', productId: null }; // Return disabled on error
+  }
+}
+
+export async function getSocialPreviewConfig(): Promise<SocialPreviewConfig> {
+  const defaultConfig: SocialPreviewConfig = {
+    title: 'ushªOªpp',
+    description: 'Your one-stop destination for quality household goods, from traditional vessels to modern appliances.',
+    imageUrl: '/home_1.png', // Default local image
+  };
+
+  try {
+    const docRef = doc(db, "siteConfig", "socialPreview");
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      // Important: Ensure the returned object matches the SocialPreviewConfig interface
+      const data = docSnap.data();
+      return {
+        title: data.title || defaultConfig.title,
+        description: data.description || defaultConfig.description,
+        imageUrl: data.imageUrl || defaultConfig.imageUrl,
+      };
+    }
+    return defaultConfig;
+  } catch (error) {
+    console.error("Error fetching social preview config:", error);
+    return defaultConfig;
   }
 }

@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
-import { Loader2, ShieldAlert, LayoutDashboard, UploadCloud, Send, PackagePlus, ListOrdered, Image as ImageIcon, Edit3, Trash2, Shapes, FolderPlus, ListChecks, ClipboardList, Download, Save, Users, UserCircle2, MessageSquare, X, Megaphone } from 'lucide-react';
+import { Loader2, ShieldAlert, LayoutDashboard, UploadCloud, Send, PackagePlus, ListOrdered, Image as ImageIcon, Edit3, Trash2, Shapes, FolderPlus, ListChecks, ClipboardList, Download, Save, Users, UserCircle2, MessageSquare, X, Megaphone, Share2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,7 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { db, storage } from '@/lib/firebase';
 import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { collection, addDoc, serverTimestamp, query, getDocs, orderBy, doc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
-import type { Product, Category, SharedFile, User, BannerConfig } from '@/lib/types';
+import type { Product, Category, SharedFile, User, BannerConfig, SocialPreviewConfig } from '@/lib/types';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
@@ -59,7 +59,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { getBannerConfig } from '@/lib/data';
+import { getBannerConfig, getSocialPreviewConfig } from '@/lib/data';
 
 
 const MAX_SHARED_FILE_SIZE_MB = 1;
@@ -165,6 +165,21 @@ const bannerConfigFormSchema = z.object({
 });
 type BannerConfigFormValues = z.infer<typeof bannerConfigFormSchema>;
 
+const socialPreviewFormSchema = z.object({
+    title: z.string().min(3, "Title is required").max(70, "Title is too long"),
+    description: z.string().min(10, "Description is required").max(160, "Description is too long"),
+    image: z.any().optional()
+        .refine((files: FileList | undefined | null) => {
+            if (!files || files.length === 0) return true;
+            return files[0].size <= 2 * 1024 * 1024; // 2MB
+        }, `Max image size is 2MB.`)
+        .refine((files: FileList | undefined | null) => {
+            if (!files || files.length === 0) return true;
+            return ['image/jpeg', 'image/png', 'image/webp'].includes(files[0].type);
+        }, `Only JPG, PNG, or WebP images are accepted.`),
+});
+type SocialPreviewFormValues = z.infer<typeof socialPreviewFormSchema>;
+
 
 function AdminPageContent() {
   const { user, isLoading: authLoading } = useAuth();
@@ -194,6 +209,8 @@ function AdminPageContent() {
   
   const [isSendingNotification, setIsSendingNotification] = useState(false);
   const [isSavingBannerConfig, setIsSavingBannerConfig] = useState(false);
+  const [isSavingSocial, setIsSavingSocial] = useState(false);
+  const [currentSocialImageUrl, setCurrentSocialImageUrl] = useState<string | null>(null);
 
   
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState<{
@@ -289,6 +306,15 @@ function AdminPageContent() {
         mode: 'automatic',
         productId: null
     }
+  });
+  
+  const {
+    register: registerSocial,
+    handleSubmit: handleSubmitSocial,
+    reset: resetSocialForm,
+    formState: { errors: socialErrors },
+  } = useForm<SocialPreviewFormValues>({
+    resolver: zodResolver(socialPreviewFormSchema),
   });
 
   const bannerConfigMode = watchBannerConfig("mode");
@@ -393,6 +419,14 @@ function AdminPageContent() {
     }
   }, [resetBannerConfigForm]);
 
+  const fetchSocialConfig = useCallback(async () => {
+    const config = await getSocialPreviewConfig();
+    if (config) {
+        resetSocialForm(config);
+        setCurrentSocialImageUrl(config.imageUrl);
+    }
+  }, [resetSocialForm]);
+
 
   useEffect(() => {
     if (user && user.isAdmin) {
@@ -401,8 +435,9 @@ function AdminPageContent() {
       fetchSharedFiles();
       fetchUsers();
       fetchBannerConfig();
+      fetchSocialConfig();
     }
-  }, [user, fetchProducts, fetchCategories, fetchSharedFiles, fetchUsers, fetchBannerConfig]);
+  }, [user, fetchProducts, fetchCategories, fetchSharedFiles, fetchUsers, fetchBannerConfig, fetchSocialConfig]);
 
 
   useEffect(() => {
@@ -831,6 +866,47 @@ function AdminPageContent() {
         setIsSavingBannerConfig(false);
     }
   };
+  
+  const onSocialPreviewSubmit: SubmitHandler<SocialPreviewFormValues> = async (data) => {
+    if (!user || !user.isAdmin) {
+        toast({ title: "Unauthorized", description: "Permission denied.", variant: "destructive" });
+        return;
+    };
+    setIsSavingSocial(true);
+    try {
+        let imageUrl = currentSocialImageUrl;
+        const imageFile = data.image?.[0];
+
+        if (imageFile) {
+            // Delete old image if it's a firebase storage URL
+            if (currentSocialImageUrl && currentSocialImageUrl.includes('firebasestorage.googleapis.com')) {
+                const oldPath = getStoragePathFromUrl(currentSocialImageUrl);
+                if (oldPath) await deleteObject(storageRef(storage, oldPath)).catch(e => console.warn("Old social image deletion failed:", e));
+            }
+            
+            // Upload new one
+            const imagePath = `site-assets/social-preview-${Date.now()}`;
+            const imageFileRef = storageRef(storage, imagePath);
+            await uploadBytes(imageFileRef, imageFile);
+            imageUrl = await getDownloadURL(imageFileRef);
+        }
+
+        const configToSave: SocialPreviewConfig = {
+            title: data.title,
+            description: data.description,
+            imageUrl: imageUrl || '', // Ensure imageUrl is not null/undefined
+        };
+
+        await setDoc(doc(db, "siteConfig", "socialPreview"), configToSave);
+        toast({ title: "Social Preview Updated", description: "Your changes have been saved." });
+        if(imageUrl) setCurrentSocialImageUrl(imageUrl); // Update preview in state
+    } catch (error: any) {
+        console.error("Error saving social preview config:", error);
+        toast({ title: "Save Failed", description: "Could not save social media settings.", variant: "destructive" });
+    } finally {
+        setIsSavingSocial(false);
+    }
+  };
 
 
   const getInitials = (name?: string | null, email?: string | null): string => {
@@ -1053,6 +1129,69 @@ function AdminPageContent() {
                             {isSavingBannerConfig ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                             {isSavingBannerConfig ? "Saving..." : "Save Banner Settings"}
                         </Button>
+                    </form>
+                </CardContent>
+            </Card>
+
+            <Card id="socialPreviewCard" className="shadow-xl">
+                <CardHeader>
+                    <div className="flex items-center space-x-3">
+                    <Share2 className="h-8 w-8 text-primary" />
+                    <CardTitle className="text-2xl font-bold font-headline text-primary">Social Media & SEO</CardTitle>
+                    </div>
+                    <CardDescription className="font-body text-muted-foreground pt-2">
+                    Control how your site appears when shared on social media (e.g., Facebook, Twitter).
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <form onSubmit={handleSubmitSocial(onSocialPreviewSubmit)} className="space-y-6">
+                    <div className="space-y-2">
+                        <Label htmlFor="socialTitle" className="font-body">Title (max 70 chars)</Label>
+                        <Input
+                        id="socialTitle"
+                        {...registerSocial("title")}
+                        placeholder="Your Site Title"
+                        disabled={isSavingSocial}
+                        maxLength={70}
+                        />
+                        {socialErrors.title && <p className="text-sm text-destructive">{socialErrors.title.message}</p>}
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="socialDescription" className="font-body">Description (max 160 chars)</Label>
+                        <Textarea
+                        id="socialDescription"
+                        {...registerSocial("description")}
+                        placeholder="A short, catchy description of your site."
+                        rows={3}
+                        disabled={isSavingSocial}
+                        maxLength={160}
+                        />
+                        {socialErrors.description && <p className="text-sm text-destructive">{socialErrors.description.message}</p>}
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="socialImage" className="font-body">
+                        Preview Image (Recommended: 1200x630, Max 2MB)
+                        </Label>
+                        <Input
+                        id="socialImage"
+                        type="file"
+                        {...registerSocial("image")}
+                        accept="image/jpeg,image/png,image/webp"
+                        className="file:mr-4 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                        disabled={isSavingSocial}
+                        />
+                        {socialErrors.image && <p className="text-sm text-destructive">{socialErrors.image.message as string}</p>}
+                        {currentSocialImageUrl && (
+                            <div className="mt-4 border rounded-lg p-2 bg-muted/30">
+                                <p className="text-xs text-muted-foreground mb-2">Current Image Preview:</p>
+                                <Image src={currentSocialImageUrl} alt="Current social preview" width={300} height={157} className="rounded object-cover" />
+                            </div>
+                        )}
+                    </div>
+                    <Button type="submit" disabled={isSavingSocial} className="w-full sm:w-auto">
+                        {isSavingSocial ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                        {isSavingSocial ? "Saving..." : "Save Social Settings"}
+                    </Button>
                     </form>
                 </CardContent>
             </Card>

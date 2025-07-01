@@ -18,9 +18,6 @@ const firebaseConfig: FirebaseOptions = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Initialize Firebase
-let app: FirebaseApp;
-
 // Critical check and log for the API key
 if (!firebaseConfig.apiKey || firebaseConfig.apiKey.trim() === "") {
   console.error(
@@ -34,6 +31,7 @@ if (!firebaseConfig.apiKey || firebaseConfig.apiKey.trim() === "") {
   console.log(`Attempting to initialize Firebase with API Key (preview): ${apiKeyPreview}`);
 }
 
+let app: FirebaseApp;
 
 if (!getApps().length) {
   app = initializeApp(firebaseConfig);
