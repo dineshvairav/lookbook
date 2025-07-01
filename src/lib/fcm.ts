@@ -20,7 +20,6 @@ export const requestNotificationPermissionAndSaveToken = async (userId: string):
   try {
     const permission = await Notification.requestPermission();
     if (permission === 'granted') {
-      console.log('Notification permission granted.');
       const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
       if (!vapidKey) {
         console.error('VAPID key is not configured. Please set NEXT_PUBLIC_FIREBASE_VAPID_KEY environment variable.');
@@ -34,14 +33,12 @@ export const requestNotificationPermissionAndSaveToken = async (userId: string):
 
       const currentToken = await getToken(firebaseMessaging, { vapidKey });
       if (currentToken) {
-        console.log('FCM Token:', currentToken);
         // Save the token to Firestore
         const userDocRef = doc(db, 'users', userId);
         await updateDoc(userDocRef, {
           fcmTokens: arrayUnion(currentToken), // Add token to an array
           fcmTokensUpdatedAt: serverTimestamp(), // Keep track of when tokens were last updated
         });
-        console.log('FCM token saved to Firestore for user:', userId);
         return currentToken;
       } else {
         console.log('No registration token available. Request permission to generate one.');

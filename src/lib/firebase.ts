@@ -18,26 +18,45 @@ const firebaseConfig: FirebaseOptions = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Critical check and log for the API key
-if (!firebaseConfig.apiKey || firebaseConfig.apiKey.trim() === "") {
-  console.error(
-    "CRITICAL_FIREBASE_ERROR: NEXT_PUBLIC_FIREBASE_API_KEY is missing or invalid. " +
-    "Ensure it's correctly set in your environment variables (e.g., .env or GitHub Secrets) and prefixed with NEXT_PUBLIC_."
-  );
-  // You might want to throw an error here in production or handle it more strictly.
-} else {
-  // Log the API key being used (first few and last few characters for verification without exposing the full key)
-  const apiKeyPreview = `${firebaseConfig.apiKey.substring(0, 5)}...${firebaseConfig.apiKey.substring(firebaseConfig.apiKey.length - 5)}`;
-  console.log(`Attempting to initialize Firebase with API Key (preview): ${apiKeyPreview}`);
-}
-
+// Initialize Firebase
 let app: FirebaseApp;
 
+// This guard prevents re-initialization on hot reloads
 if (!getApps().length) {
+  // Check for placeholder values which are not allowed
+  if (!firebaseConfig.apiKey || firebaseConfig.apiKey.includes('REPLACE_WITH_YOUR_')) {
+    // We're using a more visible console.error with styling to make it unmissable.
+    console.error(
+      `%c
+======================================================================
+          >>> CRITICAL FIREBASE CONFIGURATION ERROR <<<
+======================================================================
+
+ The Firebase API Key is missing or using a placeholder value.
+ The application cannot connect to Firebase without it.
+
+ === PLEASE FOLLOW THESE STEPS ===
+
+ 1. Find your project's API key in the Firebase Console:
+    Project Settings > General > Your apps > Web app > SDK setup and configuration
+
+ 2. Open the '.env' file located in the root of this project.
+
+ 3. Paste your credentials into the file, replacing the placeholders.
+
+ 4. Restart the application for the changes to take effect.
+
+======================================================================`,
+      'font-family:monospace; color:red; font-size:14px; font-weight:bold;'
+    );
+    // You could throw an error here to halt execution completely on the server-side,
+    // but the console error is often sufficient for development.
+  }
   app = initializeApp(firebaseConfig);
 } else {
   app = getApp();
 }
+
 
 export const auth = getAuth(app);
 export const db = getFirestore(app);
