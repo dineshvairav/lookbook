@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import Link from 'next/link';
-import { X, Percent, Loader2 } from 'lucide-react';
+import { X, Loader2 } from 'lucide-react';
 import { getBannerConfig } from '@/lib/data';
 
 interface DailyDealsBannerProps {
@@ -106,7 +106,7 @@ export function DailyDealsBanner({ products, isVisible, onClose }: DailyDealsBan
 
             <div className="p-3 pl-0 flex-grow overflow-hidden">
               <Badge variant="destructive" className="mb-1 animate-pulse">
-                <Percent className="mr-1 h-3 w-3" /> {discount}% OFF
+                Deal {discount}% OFF
               </Badge>
               <h3 className="font-headline font-semibold text-primary truncate">
                 {productOfDay.name}
