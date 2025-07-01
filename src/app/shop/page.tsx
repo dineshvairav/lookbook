@@ -15,6 +15,7 @@ import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import { DailyDealsBanner } from "@/components/promo/DailyDealsBanner";
 
 function ShopPageContent() {
   const searchParams = useSearchParams();
@@ -27,6 +28,51 @@ function ShopPageContent() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>("all");
   const productsSectionRef = useRef<HTMLElement>(null);
   const { toast } = useToast();
+  
+  const [showPromoBanner, setShowPromoBanner] = useState(false);
+  const inactivityTimer = useRef<NodeJS.Timeout | null>(null);
+  const hasShownBanner = useRef(false);
+
+  // Effect for inactivity banner
+  useEffect(() => {
+    // If banner has been shown, do nothing.
+    if (hasShownBanner.current) return;
+
+    const handleInactivity = () => {
+      // Only show banner if there are products loaded
+      if (allProducts.length > 0) {
+        setShowPromoBanner(true);
+        hasShownBanner.current = true; // Mark as shown
+        if (inactivityTimer.current) {
+          clearTimeout(inactivityTimer.current); // Clear the timer once it has fired
+        }
+      }
+    };
+
+    const resetTimer = () => {
+      if (hasShownBanner.current) return; // Don't reset if already shown
+      if (inactivityTimer.current) {
+        clearTimeout(inactivityTimer.current);
+      }
+       inactivityTimer.current = setTimeout(handleInactivity, 15000);
+    };
+
+    const activityEvents: (keyof WindowEventMap)[] = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
+    
+    // Start timer only after products have loaded
+    if (allProducts.length > 0) {
+      activityEvents.forEach(event => window.addEventListener(event, resetTimer));
+      resetTimer();
+    }
+
+    return () => {
+      if (inactivityTimer.current) {
+        clearTimeout(inactivityTimer.current);
+      }
+      activityEvents.forEach(event => window.removeEventListener(event, resetTimer));
+    };
+  }, [allProducts]);
+
 
   useEffect(() => {
     async function fetchShopData() {
@@ -184,6 +230,11 @@ function ShopPageContent() {
         </section>
       </main>
       <Footer />
+      <DailyDealsBanner
+        products={allProducts}
+        isVisible={showPromoBanner}
+        onClose={() => setShowPromoBanner(false)}
+      />
     </div>
   );
 }
