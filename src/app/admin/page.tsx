@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
-import { Loader2, ShieldAlert, LayoutDashboard, UploadCloud, Send, PackagePlus, ListOrdered, Image as ImageIcon, Edit3, Trash2, Shapes, FolderPlus, ListChecks, ClipboardList, Download, Save, Users, UserCircle2, MessageSquare, X } from 'lucide-react';
+import { Loader2, ShieldAlert, LayoutDashboard, UploadCloud, Send, PackagePlus, ListOrdered, Image as ImageIcon, Edit3, Trash2, Shapes, FolderPlus, ListChecks, ClipboardList, Download, Save, Users, UserCircle2, MessageSquare, X, Megaphone } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,7 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { db, storage } from '@/lib/firebase';
 import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { collection, addDoc, serverTimestamp, query, getDocs, orderBy, doc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
-import type { Product, Category, SharedFile, User } from '@/lib/types';
+import type { Product, Category, SharedFile, User, BannerConfig } from '@/lib/types';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
@@ -59,6 +59,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { getBannerConfig } from '@/lib/data';
 
 
 const MAX_SHARED_FILE_SIZE_MB = 1;
@@ -150,6 +151,20 @@ const notificationFormSchema = z.object({
 });
 type NotificationFormValues = z.infer<typeof notificationFormSchema>;
 
+const bannerConfigFormSchema = z.object({
+  mode: z.enum(['disabled', 'automatic', 'manual']),
+  productId: z.string().optional().nullable(),
+}).refine(data => {
+    if (data.mode === 'manual') {
+        return !!data.productId;
+    }
+    return true;
+}, {
+    message: "A product must be selected for manual mode.",
+    path: ["productId"],
+});
+type BannerConfigFormValues = z.infer<typeof bannerConfigFormSchema>;
+
 
 function AdminPageContent() {
   const { user, isLoading: authLoading } = useAuth();
@@ -178,6 +193,8 @@ function AdminPageContent() {
   const [isUpdatingUser, setIsUpdatingUser] = useState(false);
   
   const [isSendingNotification, setIsSendingNotification] = useState(false);
+  const [isSavingBannerConfig, setIsSavingBannerConfig] = useState(false);
+
   
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState<{
     type: 'product' | 'category' | 'sharedFile' | 'user';
@@ -260,6 +277,23 @@ function AdminPageContent() {
     resolver: zodResolver(notificationFormSchema),
   });
 
+  const {
+    handleSubmit: handleSubmitBannerConfig,
+    reset: resetBannerConfigForm,
+    control: bannerConfigControl,
+    watch: watchBannerConfig,
+    formState: { errors: bannerConfigErrors },
+  } = useForm<BannerConfigFormValues>({
+    resolver: zodResolver(bannerConfigFormSchema),
+    defaultValues: {
+        mode: 'automatic',
+        productId: null
+    }
+  });
+
+  const bannerConfigMode = watchBannerConfig("mode");
+  const dealProducts = useMemo(() => products.filter(p => p.mrp && p.mrp > p.mop), [products]);
+
   // Effect to pre-fill phone number from URL query parameter and scroll to the upload card
   useEffect(() => {
     const phoneFromQuery = searchParams.get('phoneNumber');
@@ -271,7 +305,7 @@ function AdminPageContent() {
   }, [searchParams, setSharedFileValue, authLoading]);
 
 
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     setIsLoadingProducts(true);
     try {
       const productsCollectionRef = collection(db, "products");
@@ -287,9 +321,9 @@ function AdminPageContent() {
       toast({ title: "Error", description: "Could not fetch products.", variant: "destructive" });
     }
     setIsLoadingProducts(false);
-  };
+  }, [toast]);
 
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     setIsLoadingCategories(true);
     try {
       const categoriesCollectionRef = collection(db, "categories");
@@ -305,9 +339,9 @@ function AdminPageContent() {
       toast({ title: "Error", description: "Could not fetch categories.", variant: "destructive" });
     }
     setIsLoadingCategories(false);
-  };
+  }, [toast]);
 
-  const fetchSharedFiles = async () => {
+  const fetchSharedFiles = useCallback(async () => {
     setIsLoadingSharedFiles(true);
     try {
       const filesCollectionRef = collection(db, "sharedFiles");
@@ -332,9 +366,9 @@ function AdminPageContent() {
       toast({ title: "Error", description: "Could not fetch shared files.", variant: "destructive" });
     }
     setIsLoadingSharedFiles(false);
-  };
+  }, [toast]);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setIsLoadingUsers(true);
     try {
       const usersCollectionRef = collection(db, "users");
@@ -350,7 +384,15 @@ function AdminPageContent() {
       toast({ title: "Error", description: "Could not fetch users. Check permissions.", variant: "destructive" });
     }
     setIsLoadingUsers(false);
-  };
+  }, [toast]);
+
+  const fetchBannerConfig = useCallback(async () => {
+    const config = await getBannerConfig();
+    if (config) {
+      resetBannerConfigForm(config);
+    }
+  }, [resetBannerConfigForm]);
+
 
   useEffect(() => {
     if (user && user.isAdmin) {
@@ -358,8 +400,9 @@ function AdminPageContent() {
       fetchCategories();
       fetchSharedFiles();
       fetchUsers();
+      fetchBannerConfig();
     }
-  }, [user]);
+  }, [user, fetchProducts, fetchCategories, fetchSharedFiles, fetchUsers, fetchBannerConfig]);
 
 
   useEffect(() => {
@@ -765,6 +808,29 @@ function AdminPageContent() {
     //    to send the push notification with the provided title and body to the collected tokens.
     // 6. Handle token cleanup (e.g., remove invalid/unregistered tokens from Firestore).
   };
+  
+  const onBannerConfigSubmit: SubmitHandler<BannerConfigFormValues> = async (data) => {
+    if (!user || !user.isAdmin) {
+      toast({ title: "Unauthorized", description: "Permission denied.", variant: "destructive" });
+      return;
+    }
+    setIsSavingBannerConfig(true);
+
+    try {
+      const configDocRef = doc(db, "siteConfig", "banner");
+      const configToSave: BannerConfig = {
+        mode: data.mode,
+        productId: data.mode === 'manual' ? data.productId : null,
+      };
+      await setDoc(configDocRef, configToSave);
+      toast({ title: "Banner Settings Saved", description: "The promotional banner settings have been updated." });
+    } catch (error: any) {
+        console.error("Error saving banner config:", error);
+        toast({ title: "Save Failed", description: "Could not save banner settings.", variant: "destructive" });
+    } finally {
+        setIsSavingBannerConfig(false);
+    }
+  };
 
 
   const getInitials = (name?: string | null, email?: string | null): string => {
@@ -914,6 +980,82 @@ function AdminPageContent() {
               </form>
             </CardContent>
           </Card>
+
+           <Card id="promoBannerCard" className="shadow-xl">
+                <CardHeader>
+                    <div className="flex items-center space-x-3">
+                        <Megaphone className="h-8 w-8 text-primary" />
+                        <CardTitle className="text-2xl font-bold font-headline text-primary">Promotional Banner Control</CardTitle>
+                    </div>
+                    <CardDescription className="font-body text-muted-foreground pt-2">
+                        Configure the inactivity pop-up banner on the shop page.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <form onSubmit={handleSubmitBannerConfig(onBannerConfigSubmit)} className="space-y-6">
+                        <div className="space-y-2">
+                            <Label htmlFor="bannerMode" className="font-body">Banner Mode</Label>
+                            <Controller
+                                name="mode"
+                                control={bannerConfigControl}
+                                render={({ field }) => (
+                                    <Select
+                                        onValueChange={field.onChange}
+                                        value={field.value}
+                                        disabled={isSavingBannerConfig}
+                                    >
+                                        <SelectTrigger id="bannerMode">
+                                            <SelectValue placeholder="Select banner mode" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="disabled">Disabled (Banner will not show)</SelectItem>
+                                            <SelectItem value="automatic">Automatic (Deal of the Day)</SelectItem>
+                                            <SelectItem value="manual">Manual (Select a specific product)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                )}
+                            />
+                            {bannerConfigErrors.mode && <p className="text-sm text-destructive">{bannerConfigErrors.mode.message}</p>}
+                        </div>
+
+                        {bannerConfigMode === 'manual' && (
+                            <div className="space-y-2 animate-in fade-in-50">
+                                <Label htmlFor="bannerProduct" className="font-body">Featured Product</Label>
+                                <Controller
+                                    name="productId"
+                                    control={bannerConfigControl}
+                                    render={({ field }) => (
+                                        <Select
+                                            onValueChange={field.onChange}
+                                            value={field.value || ""}
+                                            disabled={isSavingBannerConfig || dealProducts.length === 0}
+                                        >
+                                            <SelectTrigger id="bannerProduct">
+                                                <SelectValue placeholder="Select a product to feature" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {dealProducts.length === 0 ? (
+                                                    <SelectItem value="no-deals" disabled>No products with discounts available.</SelectItem>
+                                                ) : (
+                                                    dealProducts.map((p) => (
+                                                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                                                    ))
+                                                )}
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                />
+                                {bannerConfigErrors.productId && <p className="text-sm text-destructive">{bannerConfigErrors.productId.message}</p>}
+                            </div>
+                        )}
+
+                        <Button type="submit" disabled={isSavingBannerConfig} className="w-full sm:w-auto">
+                            {isSavingBannerConfig ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                            {isSavingBannerConfig ? "Saving..." : "Save Banner Settings"}
+                        </Button>
+                    </form>
+                </CardContent>
+            </Card>
 
 
           <Card id="manageUsersCard" className="shadow-xl">
@@ -1454,7 +1596,7 @@ function AdminPageContent() {
                           </span>
                           {sharedFile?.[0]?.name && <span className="text-sm text-foreground mt-1 truncate max-w-full">{sharedFile[0].name}</span>}
                           <p className="text-xs text-muted-foreground mt-2">
-                              PDF or Image, Max {MAX_SHARED_FILE_SIZE_MB}MB
+                              PDF or Image, Max ${MAX_SHARED_FILE_SIZE_MB}MB
                           </p>
                       </div>
                       <Input

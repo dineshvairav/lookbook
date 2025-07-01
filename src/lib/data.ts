@@ -1,5 +1,6 @@
 
-import type { Product, Category } from './types';
+
+import type { Product, Category, BannerConfig } from './types';
 import { db } from '@/lib/firebase'; // Import Firestore db instance
 import { collection, getDocs, orderBy, query, doc, getDoc } from 'firebase/firestore';
 
@@ -57,4 +58,19 @@ export async function getCategories(): Promise<Category[]> {
     ...c,
     imageUrl: c.imageUrl || `https://placehold.co/300x200.png`
   }));
+}
+
+export async function getBannerConfig(): Promise<BannerConfig | null> {
+  try {
+    const docRef = doc(db, "siteConfig", "banner");
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return docSnap.data() as BannerConfig;
+    }
+    // Return a default config if it doesn't exist, so the banner works automatically out of the box.
+    return { mode: 'automatic', productId: null };
+  } catch (error) {
+    console.error("Error fetching banner config:", error);
+    return { mode: 'disabled', productId: null }; // Return disabled on error
+  }
 }

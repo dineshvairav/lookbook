@@ -1,13 +1,15 @@
+
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import type { Product } from '@/lib/types';
+import type { Product, BannerConfig } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import Link from 'next/link';
-import { X, Percent } from 'lucide-react';
+import { X, Percent, Loader2 } from 'lucide-react';
+import { getBannerConfig } from '@/lib/data';
 
 interface DailyDealsBannerProps {
   products: Product[];
@@ -18,38 +20,61 @@ interface DailyDealsBannerProps {
 export function DailyDealsBanner({ products, isVisible, onClose }: DailyDealsBannerProps) {
   const [productOfDay, setProductOfDay] = useState<Product | null>(null);
   const [discount, setDiscount] = useState<number>(0);
+  const [config, setConfig] = useState<BannerConfig | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Filter for products that have a discount potential and a description
-    const suitableProducts = products.filter(p => p.mrp && p.mrp > p.mop && p.description);
-    if (suitableProducts.length === 0) {
+    async function fetchConfig() {
+      setIsLoading(true);
+      const bannerConfig = await getBannerConfig();
+      setConfig(bannerConfig);
+      setIsLoading(false);
+    }
+    fetchConfig();
+  }, []);
+
+  useEffect(() => {
+    if (isLoading || !config || config.mode === 'disabled' || products.length === 0) {
+      setProductOfDay(null);
       return;
     }
+    
+    let selectedProduct: Product | undefined;
 
-    // Select a product pseudo-randomly based on the day of the year
-    const dayOfYear = Math.floor((new Date().getTime() - new Date(new Date().getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
-    const productIndex = dayOfYear % suitableProducts.length;
-    const selectedProduct = suitableProducts[productIndex];
-    setProductOfDay(selectedProduct);
+    if (config.mode === 'manual' && config.productId) {
+      selectedProduct = products.find(p => p.id === config.productId);
+      if (selectedProduct && (!selectedProduct.mrp || selectedProduct.mrp <= selectedProduct.mop)) {
+          selectedProduct = undefined; 
+      }
+    } else if (config.mode === 'automatic') {
+      const suitableProducts = products.filter(p => p.mrp && p.mrp > p.mop && p.description);
+      if (suitableProducts.length > 0) {
+        const dayOfYear = Math.floor((new Date().getTime() - new Date(new Date().getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
+        const productIndex = dayOfYear % suitableProducts.length;
+        selectedProduct = suitableProducts[productIndex];
+      }
+    }
+
+    setProductOfDay(selectedProduct || null);
 
     if (selectedProduct && selectedProduct.mrp && selectedProduct.mop) {
       const discountPercentage = ((selectedProduct.mrp - selectedProduct.mop) / selectedProduct.mrp) * 100;
       setDiscount(Math.round(discountPercentage));
     }
 
-  }, [products]);
+  }, [products, config, isLoading]);
 
   useEffect(() => {
-    if (isVisible) {
+    if (isVisible && productOfDay) {
       const timer = setTimeout(() => {
         onClose();
       }, 5000); // Banner disappears after 5 seconds
 
       return () => clearTimeout(timer);
     }
-  }, [isVisible, onClose]);
+  }, [isVisible, onClose, productOfDay]);
 
-  if (!isVisible || !productOfDay) {
+  if (!isVisible || !productOfDay || isLoading) {
     return null;
   }
 

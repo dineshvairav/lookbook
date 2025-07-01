@@ -1,4 +1,5 @@
 
+
 import type { Timestamp } from 'firebase/firestore';
 
 export interface Product {
@@ -54,4 +55,9 @@ export interface ProductPageProps {
   params: {
     id: string;
   };
+}
+
+export interface BannerConfig {
+  mode: 'disabled' | 'automatic' | 'manual';
+  productId?: string | null;
 }
