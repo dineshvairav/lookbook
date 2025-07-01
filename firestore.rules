@@ -1,0 +1,48 @@
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper function to check if the requesting user is an admin
+    function isAdmin() {
+      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+
+    // Users can read/update their own data. Admins can update any user's roles.
+    match /users/{userId} {
+      allow read: if request.auth.uid == userId || isAdmin();
+      allow create: if request.auth.uid == userId;
+      // Users can update their own profile, but cannot change their roles. Admins can change roles.
+      allow update: if (request.auth.uid == userId && !('isAdmin' in request.resource.data) && !('isDealer' in request.resource.data)) || isAdmin();
+      // Only admins can delete user records (as implemented in the UI)
+      allow delete: if isAdmin();
+    }
+
+    // Products are public to read, but only admins can write/delete.
+    match /products/{productId} {
+      allow read: if true;
+      allow write, delete: if isAdmin();
+    }
+    
+    // Categories are public to read, but only admins can write/delete.
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write, delete: if isAdmin();
+    }
+    
+    // Site config is public to read, but only admins can write.
+    match /siteConfig/{configId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Shared files are public to read to support the guest download flow.
+    // WARNING: This means anyone with a link or who can guess a phone number can query for and see shared files.
+    // For enhanced security, consider implementing Firebase Phone Authentication.
+    match /sharedFiles/{fileId} {
+        allow read: if true; 
+        allow write, delete: if isAdmin();
+    }
+  }
+}
