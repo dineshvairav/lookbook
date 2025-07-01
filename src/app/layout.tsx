@@ -6,6 +6,28 @@ import Providers from './providers'; // Import Providers
 export const metadata: Metadata = {
   title: 'ushªOªpp',
   description: 'Your one-stop destination for quality household goods, from traditional vessels to modern appliances.',
+  openGraph: {
+    title: 'ushªOªpp',
+    description: 'Your one-stop destination for quality household goods, from traditional vessels to modern appliances.',
+    url: 'https://usha1960.trade',
+    siteName: 'ushªOªpp',
+    images: [
+      {
+        url: '/home_1.png', // Must be an absolute URL in production
+        width: 1200,
+        height: 630,
+        alt: 'A montage of quality household goods from ushªOªpp.',
+      },
+    ],
+    locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'ushªOªpp',
+    description: 'Your one-stop destination for quality household goods, from traditional vessels to modern appliances.',
+    images: ['/home_1.png'], // Must be an absolute URL in production
+  },
 };
 
 export default function RootLayout({
