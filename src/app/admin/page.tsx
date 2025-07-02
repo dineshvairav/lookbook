@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useEffect, useState, useMemo, useCallback, Suspense } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, Suspense, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
@@ -226,6 +226,9 @@ function AdminPageContent() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
 
+  const [justUploadedFileId, setJustUploadedFileId] = useState<string | null>(null);
+  const shareButtonRefs = useRef<Map<string, HTMLButtonElement | null>>(new Map());
+
 
   const {
     register: registerSharedFile,
@@ -444,6 +447,16 @@ function AdminPageContent() {
     }
   }, [user, fetchProducts, fetchCategories, fetchSharedFiles, fetchUsers, fetchBannerConfig, fetchSocialConfig]);
 
+  useEffect(() => {
+    if (justUploadedFileId) {
+      const buttonToFocus = shareButtonRefs.current.get(justUploadedFileId);
+      if (buttonToFocus) {
+        buttonToFocus.focus();
+        setJustUploadedFileId(null); // Reset after focusing
+      }
+    }
+  }, [sharedFiles, justUploadedFileId]);
+
 
   useEffect(() => {
     if (!authLoading) {
@@ -532,7 +545,7 @@ function AdminPageContent() {
       await uploadBytes(fileRef, fileToUpload);
       const downloadURL = await getDownloadURL(fileRef);
 
-      await addDoc(collection(db, "sharedFiles"), {
+      const docRef = await addDoc(collection(db, "sharedFiles"), {
         phoneNumber: data.phoneNumber,
         originalFileName: fileToUpload.name,
         storagePath: sharedFileStoragePath,
@@ -541,9 +554,11 @@ function AdminPageContent() {
         uploadedAt: serverTimestamp(),
         uploadedBy: user.uid,
       });
+
       toast({ title: "File Uploaded Successfully", description: `${fileToUpload.name} has been uploaded for ${data.phoneNumber}.` });
       resetSharedFileForm();
       fetchSharedFiles();
+      setJustUploadedFileId(docRef.id);
 
       const appUrl = window.location.origin;
       const downloadLink = `${appUrl}/downloads?phone=${encodeURIComponent(data.phoneNumber)}`;
@@ -1683,6 +1698,7 @@ function AdminPageContent() {
                                     </a>
                                   </Button>
                                   <Button
+                                    ref={(el) => shareButtonRefs.current.set(file.id, el)}
                                     variant="outline"
                                     size="icon"
                                     className="h-8 w-8"
