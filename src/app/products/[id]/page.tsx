@@ -13,6 +13,7 @@ import { ProductImageGallery } from "@/components/product/ProductImageGallery";
 import { ShareToWhatsAppButton } from "@/components/product/ShareToWhatsAppButton";
 import { ProductPricing } from "@/components/product/ProductPricing";
 import type { Timestamp } from "firebase/firestore";
+import type { Metadata } from 'next';
 
 export async function generateStaticParams() {
   const products = await fetchProductsFromFirestore();
@@ -20,6 +21,49 @@ export async function generateStaticParams() {
     id: product.id,
   }));
 }
+
+export async function generateMetadata(
+  { params }: { params: { id: string } }
+): Promise<Metadata> {
+  const product = await getProductById(params.id);
+
+  if (!product) {
+    return {
+      title: "Product Not Found",
+      description: "The product you are looking for does not exist.",
+    };
+  }
+  
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://usha1960.trade';
+  // Firebase Storage URLs are already absolute, so we can use them directly.
+  const imageUrl = product.imageUrl;
+
+  return {
+    title: product.name,
+    description: product.description,
+    openGraph: {
+      title: `${product.name} | ushªOªpp`,
+      description: product.description,
+      url: `${siteUrl}/products/${product.id}`,
+      images: [
+        {
+          url: imageUrl,
+          width: 1200,
+          height: 630,
+          alt: product.name,
+        }
+      ],
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${product.name} | ushªOªpp`,
+      description: product.description,
+      images: [imageUrl],
+    },
+  };
+}
+
 
 // Helper function to safely serialize Firestore Timestamps, JS Dates, strings, or numbers
 const serializeDateSafely = (dateValue: unknown): string | undefined => {
