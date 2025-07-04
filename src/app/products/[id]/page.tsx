@@ -15,6 +15,8 @@ import { ProductPricing } from "@/components/product/ProductPricing";
 import type { Timestamp } from "firebase/firestore";
 import type { Metadata } from 'next';
 
+export const revalidate = 60; // Revalidate this page every 60 seconds
+
 export async function generateStaticParams() {
   const products = await fetchProductsFromFirestore();
   return products.map((product) => ({
