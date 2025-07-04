@@ -563,11 +563,6 @@ function AdminPageContent() {
       const appUrl = window.location.origin;
       const downloadLink = `${appUrl}/downloads?phone=${encodeURIComponent(data.phoneNumber)}`;
 
-      console.log("--- SIMULATING NOTIFICATION ---");
-      console.log(`A backend function would be triggered for phone: ${data.phoneNumber}`);
-      console.log(`It would send a push notification with a deep link: ${downloadLink}`);
-      console.log(`The user clicking the notification would be taken to the downloads page and see their files.`);
-      
       toast({
         title: "Notification Sent (Simulated)",
         description: `A notification to open the app would be sent to ${data.phoneNumber}.`,
@@ -672,27 +667,37 @@ function AdminPageContent() {
         return;
       }
       
-      // 4. Prepare data for Firestore
-      const productData = {
-        name: data.name,
-        description: data.description,
-        mrp: data.mrp || null,
-        mop: data.mop,
-        dp: data.dp || null,
-        category: data.category,
-        features: data.features || '',
-        imageUrl: finalImageUrls[0],
-        images: finalImageUrls,
-        slug: data.name.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, ''),
-        updatedAt: serverTimestamp(),
-      };
-
-      // 5. Update or create document
+      // 4. Update or create document
       if (editingProduct) {
-        await updateDoc(docRef, productData);
+        await updateDoc(docRef, {
+            name: data.name,
+            description: data.description,
+            mrp: data.mrp || null,
+            mop: data.mop,
+            dp: data.dp || null,
+            category: data.category,
+            features: data.features || '',
+            imageUrl: finalImageUrls[0],
+            images: finalImageUrls,
+            slug: data.name.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, ''),
+            updatedAt: serverTimestamp(),
+        });
         toast({ title: "Product Updated", description: `${data.name} has been updated.` });
       } else {
-        await setDoc(docRef, { ...productData, createdAt: serverTimestamp() });
+        await setDoc(docRef, { 
+            name: data.name,
+            description: data.description,
+            mrp: data.mrp || null,
+            mop: data.mop,
+            dp: data.dp || null,
+            category: data.category,
+            features: data.features || '',
+            imageUrl: finalImageUrls[0],
+            images: finalImageUrls,
+            slug: data.name.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, ''),
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp() 
+        });
         toast({ title: "Product Added", description: `${data.name} has been added.` });
       }
       
