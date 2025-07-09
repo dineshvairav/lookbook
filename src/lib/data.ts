@@ -77,7 +77,7 @@ export async function getBannerConfig(): Promise<BannerConfig | null> {
 
 export async function getSocialPreviewConfig(): Promise<SocialPreviewConfig> {
   const defaultConfig: SocialPreviewConfig = {
-    title: 'ushªOªpp | wholesale household goods | since1960',
+    title: 'ushªOªpp',
     description: 'Your one-stop destination for quality household goods, from traditional vessels to modern appliances.',
     imageUrl: '/home_1.png', // Default local image
   };
