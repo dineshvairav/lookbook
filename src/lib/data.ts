@@ -79,7 +79,7 @@ export async function getSocialPreviewConfig(): Promise<SocialPreviewConfig> {
   const defaultConfig: SocialPreviewConfig = {
     title: 'ushªOªpp',
     description: 'Your one-stop destination for quality household goods, from traditional vessels to modern appliances.',
-    imageUrl: '/home_1.png', // Default local image
+    imageUrl: '/home_ai.png', // Default local image
   };
 
   try {
