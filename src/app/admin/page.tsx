@@ -667,33 +667,43 @@ function AdminPageContent() {
         return;
       }
       
-      const productPayload = {
-        name: data.name,
-        description: data.description,
-        mrp: data.mrp || null,
-        mop: data.mop,
-        dp: data.dp || null,
-        category: data.category,
-        features: data.features || '',
-        imageUrl: finalImageUrls[0],
-        images: finalImageUrls,
-        slug: data.name.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, ''),
-        updatedAt: serverTimestamp(),
-      };
-      
-      // 4. Update or create document
       if (editingProduct) {
-        await updateDoc(docRef, productPayload);
+        // Update operation payload
+        const productUpdatePayload: Partial<Product> = {
+          name: data.name,
+          description: data.description,
+          mrp: data.mrp || null,
+          mop: data.mop,
+          dp: data.dp || null,
+          category: data.category,
+          features: data.features || '',
+          imageUrl: finalImageUrls[0],
+          images: finalImageUrls,
+          slug: data.name.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, ''),
+          updatedAt: serverTimestamp() as any,
+        };
+        await updateDoc(docRef, productUpdatePayload);
         toast({ title: "Product Updated", description: `${data.name} has been updated.` });
       } else {
-        await setDoc(docRef, { 
-            ...productPayload,
-            createdAt: serverTimestamp(),
-        });
+        // Create operation payload
+         const productCreatePayload: Omit<Product, 'id'> = {
+          name: data.name,
+          description: data.description,
+          mrp: data.mrp || null,
+          mop: data.mop,
+          dp: data.dp || null,
+          category: data.category,
+          features: data.features || '',
+          imageUrl: finalImageUrls[0],
+          images: finalImageUrls,
+          slug: data.name.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, ''),
+          createdAt: serverTimestamp() as any,
+          updatedAt: serverTimestamp() as any,
+        };
+        await setDoc(docRef, productCreatePayload);
         toast({ title: "Product Added", description: `${data.name} has been added.` });
       }
       
-      // 6. Cleanup
       resetProductForm();
       setEditingProduct(null);
       setImagesMarkedForDeletion([]);
@@ -894,47 +904,49 @@ function AdminPageContent() {
   
   const onSocialPreviewSubmit: SubmitHandler<SocialPreviewFormValues> = async (data) => {
     if (!user || !user.isAdmin) {
-      toast({ title: "Unauthorized", description: "Permission denied.", variant: "destructive" });
-      return;
+        toast({ title: "Unauthorized", description: "Permission denied.", variant: "destructive" });
+        return;
     }
     setIsSavingSocial(true);
     try {
-      let finalImageUrl = currentSocialImageUrl;
-      const imageFile = data.image?.[0];
+        const imageFile = data.image?.[0];
+        let finalImageUrl = currentSocialImageUrl;
 
-      if (imageFile) {
-        // Delete old image if it's a Firebase Storage URL
-        if (currentSocialImageUrl && currentSocialImageUrl.includes('firebasestorage.googleapis.com')) {
-          const oldPath = getStoragePathFromUrl(currentSocialImageUrl);
-          if (oldPath) await deleteObject(storageRef(storage, oldPath)).catch(e => console.warn("Old social image deletion failed:", e));
+        if (imageFile) {
+            // Delete old image if it's a Firebase Storage URL and a new one is being uploaded
+            if (currentSocialImageUrl && currentSocialImageUrl.includes('firebasestorage.googleapis.com')) {
+                const oldPath = getStoragePathFromUrl(currentSocialImageUrl);
+                if (oldPath) await deleteObject(storageRef(storage, oldPath)).catch(e => console.warn("Old social image deletion failed:", e));
+            }
+            // Upload new image
+            const imagePath = `site-assets/social-preview-${Date.now()}`;
+            const imageFileRef = storageRef(storage, imagePath);
+            await uploadBytes(imageFileRef, imageFile);
+            finalImageUrl = await getDownloadURL(imageFileRef);
         }
 
-        // Upload new one
-        const imagePath = `site-assets/social-preview-${Date.now()}`;
-        const imageFileRef = storageRef(storage, imagePath);
-        await uploadBytes(imageFileRef, imageFile);
-        finalImageUrl = await getDownloadURL(imageFileRef);
-      }
+        const configToSave: SocialPreviewConfig = {
+            title: data.title,
+            description: data.description,
+            imageUrl: finalImageUrl || '', // Use finalImageUrl, which is either the new URL or the original one
+        };
 
-      const configToSave: SocialPreviewConfig = {
-        title: data.title,
-        description: data.description,
-        imageUrl: finalImageUrl || '', // Ensure imageUrl is not null/undefined
-      };
+        // Only save if we have an image URL
+        if (!configToSave.imageUrl) {
+            toast({ title: "Image Required", description: "A preview image must be set before saving.", variant: "destructive" });
+            setIsSavingSocial(false);
+            return;
+        }
 
-      if (!configToSave.imageUrl) {
-          throw new Error("Image URL is missing after processing.");
-      }
-
-      await setDoc(doc(db, "siteConfig", "socialPreview"), configToSave);
-      toast({ title: "Social Preview Updated", description: "Your changes have been saved." });
-      if (finalImageUrl) setCurrentSocialImageUrl(finalImageUrl); // Update preview in state
-      
+        await setDoc(doc(db, "siteConfig", "socialPreview"), configToSave);
+        toast({ title: "Social Preview Updated", description: "Your changes have been saved." });
+        if (finalImageUrl) setCurrentSocialImageUrl(finalImageUrl);
+        
     } catch (error: any) {
-      console.error("Error saving social preview config:", error);
-      toast({ title: "Save Failed", description: "Could not save social media settings.", variant: "destructive" });
+        console.error("Error saving social preview config:", error);
+        toast({ title: "Save Failed", description: "Could not save social media settings.", variant: "destructive" });
     } finally {
-      setIsSavingSocial(false);
+        setIsSavingSocial(false);
     }
   };
 
