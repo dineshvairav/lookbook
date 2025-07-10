@@ -667,36 +667,28 @@ function AdminPageContent() {
         return;
       }
       
+      const productPayload = {
+        name: data.name,
+        description: data.description,
+        mrp: data.mrp || null,
+        mop: data.mop,
+        dp: data.dp || null,
+        category: data.category,
+        features: data.features || '',
+        imageUrl: finalImageUrls[0],
+        images: finalImageUrls,
+        slug: data.name.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, ''),
+        updatedAt: serverTimestamp(),
+      };
+      
       // 4. Update or create document
       if (editingProduct) {
-        await updateDoc(docRef, {
-            name: data.name,
-            description: data.description,
-            mrp: data.mrp || null,
-            mop: data.mop,
-            dp: data.dp || null,
-            category: data.category,
-            features: data.features || '',
-            imageUrl: finalImageUrls[0],
-            images: finalImageUrls,
-            slug: data.name.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, ''),
-            updatedAt: serverTimestamp(),
-        });
+        await updateDoc(docRef, productPayload);
         toast({ title: "Product Updated", description: `${data.name} has been updated.` });
       } else {
         await setDoc(docRef, { 
-            name: data.name,
-            description: data.description,
-            mrp: data.mrp || null,
-            mop: data.mop,
-            dp: data.dp || null,
-            category: data.category,
-            features: data.features || '',
-            imageUrl: finalImageUrls[0],
-            images: finalImageUrls,
-            slug: data.name.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, ''),
+            ...productPayload,
             createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp() 
         });
         toast({ title: "Product Added", description: `${data.name} has been added.` });
       }
@@ -902,42 +894,47 @@ function AdminPageContent() {
   
   const onSocialPreviewSubmit: SubmitHandler<SocialPreviewFormValues> = async (data) => {
     if (!user || !user.isAdmin) {
-        toast({ title: "Unauthorized", description: "Permission denied.", variant: "destructive" });
-        return;
-    };
+      toast({ title: "Unauthorized", description: "Permission denied.", variant: "destructive" });
+      return;
+    }
     setIsSavingSocial(true);
     try {
-        let imageUrl = currentSocialImageUrl;
-        const imageFile = data.image?.[0];
+      let finalImageUrl = currentSocialImageUrl;
+      const imageFile = data.image?.[0];
 
-        if (imageFile) {
-            // Delete old image if it's a firebase storage URL
-            if (currentSocialImageUrl && currentSocialImageUrl.includes('firebasestorage.googleapis.com')) {
-                const oldPath = getStoragePathFromUrl(currentSocialImageUrl);
-                if (oldPath) await deleteObject(storageRef(storage, oldPath)).catch(e => console.warn("Old social image deletion failed:", e));
-            }
-            
-            // Upload new one
-            const imagePath = `site-assets/social-preview-${Date.now()}`;
-            const imageFileRef = storageRef(storage, imagePath);
-            await uploadBytes(imageFileRef, imageFile);
-            imageUrl = await getDownloadURL(imageFileRef);
+      if (imageFile) {
+        // Delete old image if it's a Firebase Storage URL
+        if (currentSocialImageUrl && currentSocialImageUrl.includes('firebasestorage.googleapis.com')) {
+          const oldPath = getStoragePathFromUrl(currentSocialImageUrl);
+          if (oldPath) await deleteObject(storageRef(storage, oldPath)).catch(e => console.warn("Old social image deletion failed:", e));
         }
 
-        const configToSave: SocialPreviewConfig = {
-            title: data.title,
-            description: data.description,
-            imageUrl: imageUrl || '', // Ensure imageUrl is not null/undefined
-        };
+        // Upload new one
+        const imagePath = `site-assets/social-preview-${Date.now()}`;
+        const imageFileRef = storageRef(storage, imagePath);
+        await uploadBytes(imageFileRef, imageFile);
+        finalImageUrl = await getDownloadURL(imageFileRef);
+      }
 
-        await setDoc(doc(db, "siteConfig", "socialPreview"), configToSave);
-        toast({ title: "Social Preview Updated", description: "Your changes have been saved." });
-        if(imageUrl) setCurrentSocialImageUrl(imageUrl); // Update preview in state
+      const configToSave: SocialPreviewConfig = {
+        title: data.title,
+        description: data.description,
+        imageUrl: finalImageUrl || '', // Ensure imageUrl is not null/undefined
+      };
+
+      if (!configToSave.imageUrl) {
+          throw new Error("Image URL is missing after processing.");
+      }
+
+      await setDoc(doc(db, "siteConfig", "socialPreview"), configToSave);
+      toast({ title: "Social Preview Updated", description: "Your changes have been saved." });
+      if (finalImageUrl) setCurrentSocialImageUrl(finalImageUrl); // Update preview in state
+      
     } catch (error: any) {
-        console.error("Error saving social preview config:", error);
-        toast({ title: "Save Failed", description: "Could not save social media settings.", variant: "destructive" });
+      console.error("Error saving social preview config:", error);
+      toast({ title: "Save Failed", description: "Could not save social media settings.", variant: "destructive" });
     } finally {
-        setIsSavingSocial(false);
+      setIsSavingSocial(false);
     }
   };
 
@@ -1971,3 +1968,5 @@ export default function AdminPage() {
     </Suspense>
   );
 }
+
+    
