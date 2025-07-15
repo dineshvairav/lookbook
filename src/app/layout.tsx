@@ -5,30 +5,31 @@ import Providers from './providers'; // Import Providers
 import { getSocialPreviewConfig } from '@/lib/data';
 
 export async function generateMetadata(): Promise<Metadata> {
+  // Fetch the latest config from the database
   const socialConfig = await getSocialPreviewConfig();
   
   // Fallback to a default or environment variable for the site URL
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://usha1960.trade';
 
   // Ensure image URL is absolute for social media crawlers
-  const imageUrl = socialConfig.imageUrl.startsWith('http')
+  const imageUrl = socialConfig?.imageUrl?.startsWith('http')
     ? socialConfig.imageUrl
-    : `${siteUrl}${socialConfig.imageUrl}`;
+    : `${siteUrl}${socialConfig.imageUrl || '/home_ai.png'}`;
 
   return {
-    title: socialConfig.title,
-    description: socialConfig.description,
+    title: socialConfig?.title || 'ushªOªpp',
+    description: socialConfig?.description || 'Your one-stop destination for quality household goods.',
     openGraph: {
-      title: socialConfig.title,
-      description: socialConfig.description,
+      title: socialConfig?.title || 'ushªOªpp',
+      description: socialConfig?.description || 'Your one-stop destination for quality household goods.',
       url: siteUrl,
-      siteName: socialConfig.title,
+      siteName: socialConfig?.title || 'ushªOªpp',
       images: [
         {
           url: imageUrl,
           width: 1200,
           height: 630,
-          alt: socialConfig.description,
+          alt: socialConfig?.description || 'A preview image for ushªOªpp',
         },
       ],
       locale: 'en_US',
@@ -36,8 +37,8 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     twitter: {
       card: 'summary_large_image',
-      title: socialConfig.title,
-      description: socialConfig.description,
+      title: socialConfig?.title || 'ushªOªpp',
+      description: socialConfig?.description || 'Your one-stop destination for quality household goods.',
       images: [imageUrl],
     },
   };
