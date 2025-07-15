@@ -317,6 +317,7 @@ function AdminPageContent() {
     register: registerSocial,
     handleSubmit: handleSubmitSocial,
     reset: resetSocialForm,
+    setValue: setSocialFormValue,
     formState: { errors: socialErrors },
   } = useForm<SocialPreviewFormValues>({
     resolver: zodResolver(socialPreviewFormSchema),
@@ -430,10 +431,11 @@ function AdminPageContent() {
   const fetchSocialConfig = useCallback(async () => {
     const config = await getSocialPreviewConfig();
     if (config) {
-        resetSocialForm(config);
+        setSocialFormValue("title", config.title);
+        setSocialFormValue("description", config.description);
         setCurrentSocialImageUrl(config.imageUrl);
     }
-  }, [resetSocialForm]);
+  }, [setSocialFormValue]);
 
 
   useEffect(() => {
@@ -913,12 +915,10 @@ function AdminPageContent() {
         let finalImageUrl = currentSocialImageUrl;
 
         if (imageFile) {
-            // Delete old image if it's a Firebase Storage URL and a new one is being uploaded
-            if (currentSocialImageUrl && currentSocialImageUrl.includes('firebasestorage.googleapis.com')) {
-                const oldPath = getStoragePathFromUrl(currentSocialImageUrl);
+            if (finalImageUrl && finalImageUrl.includes('firebasestorage.googleapis.com')) {
+                const oldPath = getStoragePathFromUrl(finalImageUrl);
                 if (oldPath) await deleteObject(storageRef(storage, oldPath)).catch(e => console.warn("Old social image deletion failed:", e));
             }
-            // Upload new image
             const imagePath = `site-assets/social-preview-${Date.now()}`;
             const imageFileRef = storageRef(storage, imagePath);
             await uploadBytes(imageFileRef, imageFile);
@@ -928,10 +928,9 @@ function AdminPageContent() {
         const configToSave: SocialPreviewConfig = {
             title: data.title,
             description: data.description,
-            imageUrl: finalImageUrl || '', // Use finalImageUrl, which is either the new URL or the original one
+            imageUrl: finalImageUrl || '',
         };
-
-        // Only save if we have an image URL
+        
         if (!configToSave.imageUrl) {
             toast({ title: "Image Required", description: "A preview image must be set before saving.", variant: "destructive" });
             setIsSavingSocial(false);
