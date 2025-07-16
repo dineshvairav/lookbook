@@ -431,11 +431,13 @@ function AdminPageContent() {
   const fetchSocialConfig = useCallback(async () => {
     const config = await getSocialPreviewConfig();
     if (config) {
-        setSocialFormValue("title", config.title);
-        setSocialFormValue("description", config.description);
+        resetSocialForm({
+          title: config.title,
+          description: config.description,
+        });
         setCurrentSocialImageUrl(config.imageUrl);
     }
-  }, [setSocialFormValue]);
+  }, [resetSocialForm]);
 
 
   useEffect(() => {
@@ -910,36 +912,50 @@ function AdminPageContent() {
         return;
     }
     setIsSavingSocial(true);
+    
     try {
         const imageFile = data.image?.[0];
-        let finalImageUrl = currentSocialImageUrl;
+        let newImageUrl: string | null = null;
 
+        // Step 1: Upload new image if one is provided
         if (imageFile) {
-            if (finalImageUrl && finalImageUrl.includes('firebasestorage.googleapis.com')) {
-                const oldPath = getStoragePathFromUrl(finalImageUrl);
-                if (oldPath) await deleteObject(storageRef(storage, oldPath)).catch(e => console.warn("Old social image deletion failed:", e));
+            // Delete old image first if it exists
+            if (currentSocialImageUrl && currentSocialImageUrl.includes('firebasestorage.googleapis.com')) {
+                const oldPath = getStoragePathFromUrl(currentSocialImageUrl);
+                if (oldPath) {
+                  await deleteObject(storageRef(storage, oldPath)).catch(e => console.warn("Old social image deletion failed, continuing...", e));
+                }
             }
+            // Upload the new image
             const imagePath = `site-assets/social-preview-${Date.now()}`;
             const imageFileRef = storageRef(storage, imagePath);
             await uploadBytes(imageFileRef, imageFile);
-            finalImageUrl = await getDownloadURL(imageFileRef);
+            newImageUrl = await getDownloadURL(imageFileRef);
         }
 
-        const configToSave: SocialPreviewConfig = {
-            title: data.title,
-            description: data.description,
-            imageUrl: finalImageUrl || '',
-        };
-        
-        if (!configToSave.imageUrl) {
+        // Step 2: Prepare the data for Firestore
+        const finalImageUrl = newImageUrl || currentSocialImageUrl;
+
+        if (!finalImageUrl) {
             toast({ title: "Image Required", description: "A preview image must be set before saving.", variant: "destructive" });
             setIsSavingSocial(false);
             return;
         }
 
+        const configToSave: SocialPreviewConfig = {
+            title: data.title,
+            description: data.description,
+            imageUrl: finalImageUrl,
+        };
+
+        // Step 3: Save data to Firestore
         await setDoc(doc(db, "siteConfig", "socialPreview"), configToSave);
+        
+        // Step 4: Update local state and give feedback
         toast({ title: "Social Preview Updated", description: "Your changes have been saved." });
-        if (finalImageUrl) setCurrentSocialImageUrl(finalImageUrl);
+        if (newImageUrl) {
+            setCurrentSocialImageUrl(newImageUrl);
+        }
         
     } catch (error: any) {
         console.error("Error saving social preview config:", error);
