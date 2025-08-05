@@ -6,7 +6,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, Timestamp, orderBy } from 'firebase/firestore';
 import type { SharedFile } from '@/lib/types';
 import { Loader2, FileText, Download, AlertCircle, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -82,7 +82,7 @@ function DownloadsPageContent() {
     setError(null);
     try {
       const filesCollectionRef = collection(db, "sharedFiles");
-      const q = query(filesCollectionRef, where("phoneNumber", "==", phone));
+      const q = query(filesCollectionRef, where("phoneNumber", "==", phone), orderBy("uploadedAt", "desc"));
       const querySnapshot = await getDocs(q);
       
       const fetchedFiles: SharedFile[] = [];
@@ -101,7 +101,7 @@ function DownloadsPageContent() {
           uploadedAt: uploadedAtDisplay,
         } as SharedFile);
       });
-      setFiles(fetchedFiles.sort((a,b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()));
+      setFiles(fetchedFiles);
     } catch (e: any) {
       console.error("Error fetching files:", e);
       setError(`Failed to fetch files. ${e.message}`);
