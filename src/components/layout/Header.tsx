@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { ThemeToggle } from "./ThemeToggle";
 import { AuthDialog } from "@/components/auth/AuthDialog";
 import { UserNav } from "@/components/auth/UserNav";
 import { useAuth } from "@/contexts/AuthContext";
-import { Heart, Menu, X } from "lucide-react";
+import { Heart, Menu, X, Loader2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -18,7 +18,12 @@ import {
   SheetTitle,
   SheetDescription
 } from "@/components/ui/sheet";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useRouter } from "next/navigation";
+import { productSearch } from "@/ai/flows/product-search";
+import { fetchProductsFromFirestore } from "@/lib/data";
+import type { Product } from "@/lib/types";
+import Image from "next/image";
 
 
 const AISearchIcon = () => (
@@ -49,6 +54,11 @@ export function Header() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
+  const [liveSearchResults, setLiveSearchResults] = useState<Product[]>([]);
+  const [isLiveSearchLoading, setIsLiveSearchLoading] = useState(false);
+  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
   const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -60,9 +70,77 @@ export function Header() {
         setIsSearchOpen(false);
         setSearchValue("");
         searchInputRef.current?.blur();
+        setIsPopoverOpen(false);
         router.push(`/search?q=${encodeURIComponent(query)}`);
     }
   };
+
+  const performLiveSearch = useCallback(async (query: string) => {
+    if (!query) {
+      setLiveSearchResults([]);
+      setIsPopoverOpen(false);
+      return;
+    }
+    setIsLiveSearchLoading(true);
+    setIsPopoverOpen(true);
+    try {
+      const allProducts = await fetchProductsFromFirestore();
+      const searchResult = await productSearch({ query });
+      const { productIds } = searchResult;
+      
+      if (productIds && productIds.length > 0) {
+        const foundProducts = allProducts.filter(p => productIds.includes(p.id));
+        const orderedProducts = productIds.map(id => foundProducts.find(p => p.id === id)).filter(Boolean) as Product[];
+        setLiveSearchResults(orderedProducts.slice(0, 5)); // Limit to 5 results
+      } else {
+        setLiveSearchResults([]);
+      }
+    } catch (error) {
+      console.error("Live search failed:", error);
+      setLiveSearchResults([]);
+    } finally {
+      setIsLiveSearchLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+    if (searchValue.trim()) {
+      debounceTimeoutRef.current = setTimeout(() => {
+        performLiveSearch(searchValue);
+      }, 300); // 300ms debounce
+    } else {
+        setLiveSearchResults([]);
+        setIsPopoverOpen(false);
+    }
+
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+    };
+  }, [searchValue, performLiveSearch]);
+
+  const handleBlur = () => {
+    if (!searchValue) {
+      setIsSearchOpen(false);
+    }
+    // Small delay to allow click on popover
+    setTimeout(() => {
+        if (!searchInputRef.current?.matches(':focus')) {
+            setIsPopoverOpen(false);
+        }
+    }, 150);
+  };
+  
+  const handleFocus = () => {
+    setIsSearchOpen(true);
+    if (liveSearchResults.length > 0) {
+        setIsPopoverOpen(true);
+    }
+  }
 
   return (
     <>
@@ -74,66 +152,97 @@ export function Header() {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-4 lg:space-x-6">
-          <form
-            onSubmit={handleSearchSubmit}
-            className={cn(
-              "relative flex items-center h-9 transition-all duration-300 ease-in-out",
-              isSearchOpen ? "w-56" : "w-9"
-            )}
-          >
-            <div
-              className={cn(
-                "relative h-full w-full",
-                isSearchOpen && searchValue && "p-[1.5px] rounded-lg search-container-with-glow"
-              )}
-            >
-              <div
+          <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
+            <PopoverTrigger asChild>
+               <form
+                onSubmit={handleSearchSubmit}
                 className={cn(
-                  "absolute inset-0 z-[-1] rounded-lg",
-                  isSearchOpen && searchValue && "search-glow-effect"
+                  "relative flex items-center h-9 transition-all duration-300 ease-in-out",
+                  isSearchOpen ? "w-56" : "w-9"
                 )}
-              />
-              <Input
-                ref={searchInputRef}
-                type="search"
-                name="search"
-                value={searchValue}
-                onChange={(e) => setSearchValue(e.target.value)}
-                onFocus={() => setIsSearchOpen(true)}
-                onBlur={() => {
-                  if (!searchValue) {
-                    setIsSearchOpen(false);
-                  }
-                }}
-                placeholder="AI Search..."
-                className={cn(
-                  "relative h-9 w-full bg-background pr-4 text-sm transition-all duration-300 ease-in-out focus-visible:ring-0 focus-visible:ring-offset-0",
-                  isSearchOpen ? "cursor-text pl-10" : "cursor-pointer pl-9 border-transparent",
-                  !isSearchOpen && "pointer-events-none",
-                  isSearchOpen && searchValue
-                    ? "border-0 rounded-[calc(var(--radius)-1.5px)]"
-                    : "border border-input rounded-lg"
-                )}
-              />
-            </div>
+              >
+                <div
+                  className={cn(
+                    "relative h-full w-full",
+                    isSearchOpen && searchValue && "p-[1.5px] rounded-lg search-container-with-glow"
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "absolute inset-0 z-[-1] rounded-lg",
+                      isSearchOpen && searchValue && "search-glow-effect"
+                    )}
+                  />
+                  <Input
+                    ref={searchInputRef}
+                    type="search"
+                    name="search"
+                    value={searchValue}
+                    onChange={(e) => setSearchValue(e.target.value)}
+                    onFocus={handleFocus}
+                    onBlur={handleBlur}
+                    placeholder="AI Search..."
+                    className={cn(
+                      "relative h-9 w-full bg-background pr-4 text-sm transition-all duration-300 ease-in-out focus-visible:ring-0 focus-visible:ring-offset-0",
+                      isSearchOpen ? "cursor-text pl-10" : "cursor-pointer pl-9 border-transparent",
+                      !isSearchOpen && "pointer-events-none",
+                      isSearchOpen && searchValue
+                        ? "border-0 rounded-[calc(var(--radius)-1.5px)]"
+                        : "border border-input rounded-lg"
+                    )}
+                    autoComplete="off"
+                  />
+                </div>
 
-            <Button
-              type="submit"
-              variant="ghost"
-              size="icon"
-              aria-label="Search"
-              className="absolute left-0 top-0 h-9 w-9 shrink-0 rounded-lg"
-              onClick={(e) => {
-                if (!isSearchOpen) {
-                  e.preventDefault();
-                  setIsSearchOpen(true);
-                  searchInputRef.current?.focus();
-                }
-              }}
-            >
-              <AISearchIcon />
-            </Button>
-          </form>
+                <Button
+                  type="submit"
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Search"
+                  className="absolute left-0 top-0 h-9 w-9 shrink-0 rounded-lg"
+                  onClick={(e) => {
+                    if (!isSearchOpen) {
+                      e.preventDefault();
+                      setIsSearchOpen(true);
+                      searchInputRef.current?.focus();
+                    }
+                  }}
+                >
+                  <AISearchIcon />
+                </Button>
+              </form>
+            </PopoverTrigger>
+            <PopoverContent className="w-[350px] p-2" align="start">
+              {isLiveSearchLoading ? (
+                 <div className="flex items-center justify-center p-4">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                 </div>
+              ) : liveSearchResults.length > 0 ? (
+                <div className="space-y-1">
+                  {liveSearchResults.map(product => (
+                    <Link
+                      key={product.id}
+                      href={`/products/${product.id}`}
+                      className="flex items-center gap-3 p-2 rounded-md hover:bg-accent transition-colors"
+                      onClick={() => setIsPopoverOpen(false)}
+                    >
+                      <Image
+                        src={product.imageUrl}
+                        alt={product.name}
+                        width={40}
+                        height={40}
+                        className="h-10 w-10 rounded-md object-contain bg-white"
+                        data-ai-hint="product thumbnail"
+                      />
+                      <span className="text-sm font-medium truncate">{product.name}</span>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <p className="p-4 text-center text-sm text-muted-foreground">No results found.</p>
+              )}
+            </PopoverContent>
+          </Popover>
           
           <Link
             href="/shop"
