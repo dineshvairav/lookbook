@@ -1,67 +1,43 @@
+
 rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-
-    // Allow public read access for all files in these folders
-    match /product-images/{allPaths=**} {
-      allow read: if true;
-    }
-    match /category-images/{allPaths=**} {
-      allow read: if true;
-    }
-    match /site-assets/{allPaths=**} {
-      allow read: if true;
-    }
-     match /userSharedFiles/{allPaths=**} {
-      // For the guest download feature, these must be publicly readable.
-      // For higher security, this would require phone authentication.
-      allow read: if true;
-    }
-    match /avatars/{allPaths=**} {
-      allow read: if true;
-    }
-    
-
-    // Secure write access to admins only, based on Firestore 'isAdmin' flag
+    // Helper function to check for admin role from Firestore
     function isAdmin() {
-      return request.auth != null && 
-             firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.isAdmin == true;
-    }
-    
-    // Rule for product images
-    match /product-images/{allPaths=**} {
-      allow write: if isAdmin() &&
-                      request.resource.size < 2 * 1024 * 1024 && // 2MB
-                      request.resource.contentType.matches('image/.*');
-    }
-    
-    // Rule for category images
-    match /category-images/{allPaths=**} {
-      allow write: if isAdmin() &&
-                      request.resource.size < 2 * 1024 * 1024 && // 2MB
-                      request.resource.contentType.matches('image/.*');
-    }
-    
-    // Rule for general site assets like social preview images
-    match /site-assets/{allPaths=**} {
-      allow write: if isAdmin() &&
-                      request.resource.size < 2 * 1024 * 1024 && // 2MB
-                      request.resource.contentType.matches('image/.*');
+      return exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
+             get(/databases/(default)/documents/users/$(request.auth.uid)).data.isAdmin == true;
     }
 
-    // Rule for files shared with specific users by an admin
-    match /userSharedFiles/{allPaths=**} {
-      allow write: if isAdmin() &&
-                      request.resource.size < 2 * 1024 * 1024; // 2MB
+    // Rules for product images
+    match /product-images/{productId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null && isAdmin();
     }
 
-    // Rule for user avatars
+    // Rules for category images
+    match /category-images/{categoryId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null && isAdmin();
+    }
+
+    // Rules for user avatars
     match /avatars/{userId}/{allPaths=**} {
-       // Allow a user to upload/update their own avatar
-      allow write: if request.auth != null && request.auth.uid == userId &&
-                      request.resource.size < 1 * 1024 * 1024 && // 1MB
-                      request.resource.contentType.matches('image/.*');
+      allow read: if true;
+      // Allow user to write to their own avatar folder
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Rules for site assets like social preview images
+    match /site-assets/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null && isAdmin();
+    }
+
+    // Rules for files shared with specific users
+    match /userSharedFiles/{allPaths=**} {
+      allow read: if true; // Public read access for links to work
+      allow write: if request.auth != null && isAdmin(); // Only admins can create/update/delete
     }
   }
 }
