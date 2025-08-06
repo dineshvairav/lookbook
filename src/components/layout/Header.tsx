@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -76,7 +77,7 @@ export function Header() {
   };
 
   const performLiveSearch = useCallback(async (query: string) => {
-    if (!query) {
+    if (query.length < 2) { // Don't search for less than 2 characters
       setLiveSearchResults([]);
       setIsPopoverOpen(false);
       return;
@@ -107,9 +108,11 @@ export function Header() {
     if (debounceTimeoutRef.current) {
       clearTimeout(debounceTimeoutRef.current);
     }
-    if (searchValue.trim()) {
+
+    const trimmedValue = searchValue.trim();
+    if (trimmedValue) {
       debounceTimeoutRef.current = setTimeout(() => {
-        performLiveSearch(searchValue);
+        performLiveSearch(trimmedValue);
       }, 300); // 300ms debounce
     } else {
         setLiveSearchResults([]);
@@ -124,12 +127,13 @@ export function Header() {
   }, [searchValue, performLiveSearch]);
 
   const handleBlur = () => {
-    if (!searchValue) {
-      setIsSearchOpen(false);
-    }
     // Small delay to allow click on popover
     setTimeout(() => {
-        if (!searchInputRef.current?.matches(':focus')) {
+        const popover = document.querySelector('[data-radix-popper-content-wrapper]');
+        if (!searchInputRef.current?.matches(':focus') && !popover?.matches(':hover')) {
+             if (!searchValue) {
+                setIsSearchOpen(false);
+             }
             setIsPopoverOpen(false);
         }
     }, 150);
@@ -137,7 +141,7 @@ export function Header() {
   
   const handleFocus = () => {
     setIsSearchOpen(true);
-    if (liveSearchResults.length > 0) {
+    if (liveSearchResults.length > 0 || isLiveSearchLoading) {
         setIsPopoverOpen(true);
     }
   }
@@ -185,7 +189,6 @@ export function Header() {
                     className={cn(
                       "relative h-9 w-full bg-background pr-4 text-sm transition-all duration-300 ease-in-out focus-visible:ring-0 focus-visible:ring-offset-0",
                       isSearchOpen ? "cursor-text pl-10" : "cursor-pointer pl-9 border-transparent",
-                      !isSearchOpen && "pointer-events-none",
                       isSearchOpen && searchValue
                         ? "border-0 rounded-[calc(var(--radius)-1.5px)]"
                         : "border border-input rounded-lg"
@@ -212,7 +215,7 @@ export function Header() {
                 </Button>
               </form>
             </PopoverTrigger>
-            <PopoverContent className="w-[350px] p-2" align="start">
+            <PopoverContent className="w-[350px] p-2" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
               {isLiveSearchLoading ? (
                  <div className="flex items-center justify-center p-4">
                     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -239,7 +242,7 @@ export function Header() {
                   ))}
                 </div>
               ) : (
-                <p className="p-4 text-center text-sm text-muted-foreground">No results found.</p>
+                <p className="p-4 text-center text-sm text-muted-foreground">No results found for "{searchValue}".</p>
               )}
             </PopoverContent>
           </Popover>
