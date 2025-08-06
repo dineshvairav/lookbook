@@ -1,43 +1,52 @@
-
 rules_version = '2';
+
+// Helper function to check if the user is an admin by reading their custom claims
+function isAdmin() {
+  return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+}
 
 service firebase.storage {
   match /b/{bucket}/o {
-    // Helper function to check for admin role from Firestore
-    function isAdmin() {
-      return exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
-             get(/databases/(default)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    
+    // Default rule: Deny all reads and writes on paths that are not explicitly defined.
+    // This is a security best practice to prevent unauthorized access to any new or undefined folders.
+    match /{allPaths=**} {
+      allow read, write: if false;
     }
 
-    // Rules for product images
+    // Product Images: Publicly readable, but only admins can upload, update, or delete.
+    // This allows images to be shown on the shop and product pages for all visitors.
     match /product-images/{productId}/{allPaths=**} {
       allow read: if true;
       allow write: if request.auth != null && isAdmin();
     }
-
-    // Rules for category images
+    
+    // Category Images: Publicly readable, only admins can manage them.
     match /category-images/{categoryId}/{allPaths=**} {
       allow read: if true;
       allow write: if request.auth != null && isAdmin();
     }
-
-    // Rules for user avatars
+    
+    // User Avatars: Publicly readable so anyone can see profile pictures.
+    // Only the authenticated user who owns the avatar can upload or delete their own image.
     match /avatars/{userId}/{allPaths=**} {
       allow read: if true;
-      // Allow user to write to their own avatar folder
       allow write: if request.auth != null && request.auth.uid == userId;
     }
     
-    // Rules for site assets like social preview images
+    // Site-wide Assets: Publicly readable (e.g., for social media previews).
+    // Only admins can upload or delete these assets.
     match /site-assets/{allPaths=**} {
       allow read: if true;
       allow write: if request.auth != null && isAdmin();
     }
-
-    // Rules for files shared with specific users
-    match /userSharedFiles/{allPaths=**} {
-      allow read: if true; // Public read access for links to work
-      allow write: if request.auth != null && isAdmin(); // Only admins can create/update/delete
+    
+    // User Shared Files: These are more sensitive.
+    // We deny public read access. Only admins can create/write/delete them.
+    // The application logic provides a secure download URL for the intended user.
+    match /userSharedFiles/{phoneNumber}/{allPaths=**} {
+      allow read: if false; // Deny direct public reads for security
+      allow write: if request.auth != null && isAdmin();
     }
   }
 }
