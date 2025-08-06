@@ -332,15 +332,23 @@ function AdminPageContent() {
   // Effect to pre-fill phone number from URL query parameter and scroll to the upload card
   useEffect(() => {
     const phoneFromQuery = searchParams.get('phoneNumber');
-    // Run this logic only after auth has finished loading and a phone number is present
     if (!authLoading && phoneFromQuery) {
       setActiveTab("users");
       setSharedFileValue('phoneNumber', phoneFromQuery, { shouldValidate: true });
-      setTimeout(() => {
-        document.getElementById('uploadFileCard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 100);
     }
   }, [searchParams, setSharedFileValue, authLoading]);
+
+  // Effect to scroll to the upload card when the 'users' tab becomes active due to the URL param
+  useEffect(() => {
+    if (activeTab === 'users' && searchParams.get('phoneNumber')) {
+      // Use a timeout to ensure the tab content is rendered before scrolling
+      const timer = setTimeout(() => {
+        const uploadCard = document.getElementById('uploadFileCard');
+        uploadCard?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [activeTab, searchParams]);
 
 
   const fetchProducts = useCallback(async () => {
@@ -917,63 +925,73 @@ function AdminPageContent() {
   };
   
   const onSocialPreviewSubmit: SubmitHandler<SocialPreviewFormValues> = async (data) => {
-      if (!user || !user.isAdmin) {
-          toast({ title: "Unauthorized", description: "Permission denied.", variant: "destructive" });
-          return;
+    if (!user || !user.isAdmin) {
+      toast({
+        title: 'Unauthorized',
+        description: 'Permission denied.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setIsSavingSocial(true);
+
+    let imageUrlToSave = currentSocialImageUrl;
+    const imageFile = data.image?.[0];
+
+    try {
+      // Step 1: Handle image upload ONLY if a new file is provided.
+      if (imageFile) {
+        // Delete the old image from storage if it exists.
+        if (currentSocialImageUrl) {
+          const oldPath = getStoragePathFromUrl(currentSocialImageUrl);
+          if (oldPath) {
+            await deleteObject(storageRef(storage, oldPath)).catch((e) =>
+              console.warn('Old social image deletion failed, continuing...', e)
+            );
+          }
+        }
+
+        // Upload the new image.
+        const imagePath = `site-assets/social-preview-${Date.now()}`;
+        const imageFileRef = storageRef(storage, imagePath);
+        await uploadBytes(imageFileRef, imageFile);
+        imageUrlToSave = await getDownloadURL(imageFileRef);
       }
-      setIsSavingSocial(true);
       
-      let imageUrlToSave = currentSocialImageUrl; // Start with the existing image URL
-      const imageFile = data.image?.[0];
+      // Step 2: Now that any upload is complete, prepare the data for Firestore.
+      const configToSave: SocialPreviewConfig = {
+        title: data.title,
+        description: data.description,
+        imageUrl: imageUrlToSave, // This will be the new URL or the original URL
+      };
 
-      try {
-          // Step 1: Handle image upload ONLY if a new file is provided.
-          if (imageFile) {
-              // Delete the old image from storage if it exists.
-              if (currentSocialImageUrl) {
-                  const oldPath = getStoragePathFromUrl(currentSocialImageUrl);
-                  if (oldPath) {
-                      await deleteObject(storageRef(storage, oldPath)).catch(e => 
-                          console.warn("Old social image deletion failed, continuing...", e)
-                      );
-                  }
-              }
-
-              // Upload the new image.
-              const imagePath = `site-assets/social-preview-${Date.now()}`;
-              const imageFileRef = storageRef(storage, imagePath);
-              await uploadBytes(imageFileRef, imageFile);
-              imageUrlToSave = await getDownloadURL(imageFileRef); // Update the URL to save with the new one.
-          }
-          
-          // Step 2: Ensure we have an image URL before proceeding.
-          if (!imageUrlToSave) {
-              toast({ title: "Image Required", description: "A preview image must be set before saving.", variant: "destructive" });
-              setIsSavingSocial(false);
-              return;
-          }
-
-          // Step 3: Prepare the data for Firestore.
-          const configToSave: SocialPreviewConfig = {
-              title: data.title,
-              description: data.description,
-              imageUrl: imageUrlToSave,
-          };
-
-          // Step 4: Save data to Firestore.
-          await setDoc(doc(db, "siteConfig", "socialPreview"), configToSave);
-          
-          // Step 5: Update local state and give feedback.
-          toast({ title: "Social Preview Updated", description: "Your changes have been saved." });
-          setCurrentSocialImageUrl(imageUrlToSave); // Update the state with the (potentially new) URL.
-          setSocialFormValue('image', undefined); // Clear the file input.
-          
-      } catch (error: any) {
-          console.error("Error saving social preview config:", error);
-          toast({ title: "Save Failed", description: error.message || "Could not save social media settings.", variant: "destructive" });
-      } finally {
-          setIsSavingSocial(false);
+      // Step 3: Save data to Firestore.
+      if (!configToSave.imageUrl) {
+        toast({ title: "Image Required", description: "A preview image must be set before saving.", variant: "destructive" });
+        setIsSavingSocial(false);
+        return
       }
+
+      await setDoc(doc(db, 'siteConfig', 'socialPreview'), configToSave);
+
+      // Step 4: Update local state and give feedback.
+      toast({
+        title: 'Social Preview Updated',
+        description: 'Your changes have been saved.',
+      });
+      setCurrentSocialImageUrl(imageUrlToSave);
+      setSocialFormValue('image', undefined);
+    } catch (error: any) {
+      console.error('Error saving social preview config:', error);
+      toast({
+        title: 'Save Failed',
+        description:
+          error.message || 'Could not save social media settings.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSavingSocial(false);
+    }
   };
 
   const getInitials = (name?: string | null, email?: string | null): string => {
