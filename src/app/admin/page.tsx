@@ -341,11 +341,12 @@ function AdminPageContent() {
   // Effect to scroll to the upload card when the 'users' tab becomes active due to the URL param
   useEffect(() => {
     if (activeTab === 'users' && searchParams.get('phoneNumber')) {
-      // Use a timeout to ensure the tab content is rendered before scrolling
       const timer = setTimeout(() => {
         const uploadCard = document.getElementById('uploadFileCard');
-        uploadCard?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 100);
+        if (uploadCard) {
+            uploadCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 150); // Increased timeout slightly
       return () => clearTimeout(timer);
     }
   }, [activeTab, searchParams]);
@@ -462,12 +463,21 @@ function AdminPageContent() {
     }
   }, [user, fetchProducts, fetchCategories, fetchSharedFiles, fetchUsers, fetchBannerConfig, fetchSocialConfig]);
 
+  // Effect for focusing the share button of a newly uploaded file
   useEffect(() => {
-    if (justUploadedFileId) {
+    if (justUploadedFileId && sharedFiles.length > 0) {
       const buttonToFocus = shareButtonRefs.current.get(justUploadedFileId);
       if (buttonToFocus) {
-        buttonToFocus.focus();
-        setJustUploadedFileId(null); // Reset after focusing
+        // Scroll the table into view first if needed, then focus
+        const tableCard = document.getElementById('manageSharedFilesCard');
+        tableCard?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        
+        // Timeout to allow scroll to finish before focusing
+        const timer = setTimeout(() => {
+          buttonToFocus.focus();
+          setJustUploadedFileId(null); // Reset after focusing
+        }, 500); // Adjust timeout if needed
+        return () => clearTimeout(timer);
       }
     }
   }, [sharedFiles, justUploadedFileId]);
@@ -780,8 +790,8 @@ function AdminPageContent() {
           const oldPath = getStoragePathFromUrl(editingCategory.imageUrl);
           if (oldPath) await deleteObject(storageRef(storage, oldPath)).catch(e => console.warn("Old category image deletion failed:", e));
         }
-        const newImageId = editingCategory?.id || doc(collection(db, "categories")).id;
-        const imagePath = `category-images/${newImageId}/${imageFile.name}`;
+        const newCategoryId = editingCategory?.id || doc(collection(db, "categories")).id;
+        const imagePath = `category-images/${newCategoryId}/${imageFile.name}`;
         const imageFileRef = storageRef(storage, imagePath);
         await uploadBytes(imageFileRef, imageFile);
         imageUrl = await getDownloadURL(imageFileRef);
@@ -2023,3 +2033,5 @@ export default function AdminPage() {
     </Suspense>
   );
 }
+
+    
