@@ -331,22 +331,26 @@ function AdminPageContent() {
   const bannerConfigMode = watchBannerConfig("mode");
   const dealProducts = useMemo(() => products.filter(p => p.mrp && p.mrp > p.mop), [products]);
 
-  // Combined effect to handle arriving with a phone number in the URL
+  // Effect to scroll to the upload card when arriving with a phone number in the URL.
   useEffect(() => {
-    const phoneFromQuery = searchParams.get('phoneNumber');
+    const phoneFromQuery = searchParams.get('phone');
+    // Only run if we have a phone number, user is loaded and admin, and the initial scroll hasn't been done yet.
     if (phoneFromQuery && !authLoading && user?.isAdmin && !initialScrollDone) {
       setActiveTab("users");
       setSharedFileValue('phoneNumber', phoneFromQuery, { shouldValidate: true });
 
+      // Timeout allows the tab content to render before we try to scroll.
       const timer = setTimeout(() => {
         const uploadCard = document.getElementById('uploadFileCard');
         if (uploadCard) {
+            // Perform the scroll.
             uploadCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            setInitialScrollDone(true); // Mark as done to prevent re-scrolling
+            // Set the flag to true so this effect doesn't run again on this visit.
+            setInitialScrollDone(true);
         }
-      }, 300);
+      }, 300); // 300ms delay is usually enough for the UI to update.
 
-      return () => clearTimeout(timer);
+      return () => clearTimeout(timer); // Cleanup timer on unmount.
     }
   }, [searchParams, authLoading, user, setSharedFileValue, initialScrollDone]);
 
@@ -462,20 +466,18 @@ function AdminPageContent() {
     }
   }, [user, fetchProducts, fetchCategories, fetchSharedFiles, fetchUsers, fetchBannerConfig, fetchSocialConfig]);
 
-  // Effect for focusing the share button of a newly uploaded file
+  // Effect for focusing the share button of a newly uploaded file.
   useEffect(() => {
     if (justUploadedFileId && sharedFiles.length > 0) {
       const buttonToFocus = shareButtonRefs.current.get(justUploadedFileId);
       if (buttonToFocus) {
-        // Scroll the table into view first if needed, then focus
-        const tableCard = document.getElementById('manageSharedFilesCard');
-        tableCard?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        
-        // Timeout to allow scroll to finish before focusing
+        // This effect no longer forces a scroll to the top of the table.
+        // It will just focus the button, and the browser will handle scrolling
+        // it into view if it's off-screen.
         const timer = setTimeout(() => {
-          buttonToFocus.focus();
+          buttonToFocus.focus({ preventScroll: false }); // Allow browser to scroll if needed
           setJustUploadedFileId(null); // Reset after focusing
-        }, 500); // Adjust timeout if needed
+        }, 300); // Small delay to ensure render is complete
         return () => clearTimeout(timer);
       }
     }
