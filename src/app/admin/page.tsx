@@ -334,28 +334,25 @@ function AdminPageContent() {
 
   // Effect to handle URL parameter for phone number.
   useEffect(() => {
-    if (phoneFromQuery && !authLoading && user?.isAdmin && !initialScrollDone.current) {
+    if (phoneFromQuery && !authLoading && user?.isAdmin) {
       setSharedFileValue('phoneNumber', phoneFromQuery, { shouldValidate: true });
       setActiveTab("users");
-      // Set the flag here to prevent re-triggering. The actual scroll will happen in the next effect.
-      initialScrollDone.current = true; 
     }
   }, [phoneFromQuery, authLoading, user, setSharedFileValue]);
 
   // Effect that specifically handles the scroll AFTER the tab has changed.
   useEffect(() => {
-    if (activeTab === 'users' && initialScrollDone.current) {
-      const timer = setTimeout(() => {
-        const uploadCard = document.getElementById('uploadFileCard');
-        if (uploadCard) {
-          uploadCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          // Crucially, reset the flag so this doesn't run again on tab changes
-          initialScrollDone.current = false;
-        }
-      }, 100); 
-      return () => clearTimeout(timer);
+    if (activeTab === 'users' && phoneFromQuery && !initialScrollDone.current) {
+        const timer = setTimeout(() => {
+            const uploadCard = document.getElementById('uploadFileCard');
+            if (uploadCard) {
+                uploadCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                initialScrollDone.current = true;
+            }
+        }, 100); 
+        return () => clearTimeout(timer);
     }
-  }, [activeTab]);
+  }, [activeTab, phoneFromQuery]);
 
 
   const fetchProducts = useCallback(async () => {
@@ -476,8 +473,10 @@ function AdminPageContent() {
       if (buttonToFocus) {
         const timer = setTimeout(() => {
             const tableCard = document.getElementById('manageSharedFilesCard');
-            tableCard?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            buttonToFocus.focus({ preventScroll: false });
+            if (tableCard) {
+                tableCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                buttonToFocus.focus({ preventScroll: false }); // Focus without scrolling the container
+            }
             setJustUploadedFileId(null);
         }, 300);
         return () => clearTimeout(timer);
@@ -1723,6 +1722,74 @@ function AdminPageContent() {
                   )}
                 </CardContent>
               </Card>
+
+              <Card id="uploadFileCard" className="shadow-xl scroll-mt-20">
+                <CardHeader>
+                  <div className="flex items-center space-x-3">
+                    <UploadCloud className="h-8 w-8 text-primary" />
+                    <CardTitle className="text-2xl font-bold font-headline text-primary">Upload File for User</CardTitle>
+                  </div>
+                  <CardDescription className="font-body text-muted-foreground pt-2">
+                    Upload a PDF or image file for a user identified by their phone number.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleSubmitSharedFile(onSharedFileUploadSubmit)} className="space-y-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="phoneNumber" className="font-body">User's Phone Number</Label>
+                      <Input
+                        id="phoneNumber"
+                        type="tel"
+                        {...registerSharedFile("phoneNumber")}
+                        placeholder="+12345678900"
+                        className="bg-background"
+                        disabled={isUploadingSharedFile}
+                      />
+                      {sharedFileErrors.phoneNumber && <p className="text-sm text-destructive">{sharedFileErrors.phoneNumber.message}</p>}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label
+                          htmlFor="file"
+                          onDragEnter={handleDragEnter}
+                          onDragLeave={handleDragLeave}
+                          onDragOver={handleDragOver}
+                          onDrop={handleDrop}
+                          className={cn(
+                              "relative block w-full p-8 border-2 border-dashed rounded-lg cursor-pointer text-center hover:bg-muted/50 transition-colors",
+                              isDragging ? "border-primary bg-primary/10" : "border-input"
+                          )}
+                        >
+                          <div className="flex flex-col items-center justify-center">
+                              <UploadCloud className="w-10 h-10 text-muted-foreground mb-3" />
+                              <span className="font-semibold text-primary">
+                                  {sharedFile?.[0]?.name ? 'File selected:' : 'Choose a file or drag it here'}
+                              </span>
+                              {sharedFile?.[0]?.name && <span className="text-sm text-foreground mt-1 truncate max-w-full">{sharedFile[0].name}</span>}
+                              <p className="text-xs text-muted-foreground mt-2">
+                                  PDF or Image, Max ${MAX_SHARED_FILE_SIZE_MB}MB
+                              </p>
+                          </div>
+                          <Input
+                              id="file"
+                              type="file"
+                              {...registerSharedFile("file")}
+                              accept={ACCEPTED_SHARED_FILE_TYPES.join(',')}
+                              className="sr-only" // Visually hidden but accessible
+                              disabled={isUploadingSharedFile}
+                          />
+                      </Label>
+                      {sharedFileErrors.file && <p className="text-sm text-destructive mt-2">{sharedFileErrors.file.message as string}</p>}
+                    </div>
+
+
+                    <Button type="submit" disabled={isUploadingSharedFile} className="w-full sm:w-auto">
+                      {isUploadingSharedFile ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                      {isUploadingSharedFile ? "Uploading..." : "Upload File"}
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
               
               <Card id="manageSharedFilesCard" className="shadow-xl">
                 <CardHeader>
@@ -1808,73 +1875,6 @@ function AdminPageContent() {
                 </CardContent>
               </Card>
 
-              <Card id="uploadFileCard" className="shadow-xl scroll-mt-20">
-                <CardHeader>
-                  <div className="flex items-center space-x-3">
-                    <UploadCloud className="h-8 w-8 text-primary" />
-                    <CardTitle className="text-2xl font-bold font-headline text-primary">Upload File for User</CardTitle>
-                  </div>
-                  <CardDescription className="font-body text-muted-foreground pt-2">
-                    Upload a PDF or image file for a user identified by their phone number.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <form onSubmit={handleSubmitSharedFile(onSharedFileUploadSubmit)} className="space-y-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="phoneNumber" className="font-body">User's Phone Number</Label>
-                      <Input
-                        id="phoneNumber"
-                        type="tel"
-                        {...registerSharedFile("phoneNumber")}
-                        placeholder="+12345678900"
-                        className="bg-background"
-                        disabled={isUploadingSharedFile}
-                      />
-                      {sharedFileErrors.phoneNumber && <p className="text-sm text-destructive">{sharedFileErrors.phoneNumber.message}</p>}
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label
-                          htmlFor="file"
-                          onDragEnter={handleDragEnter}
-                          onDragLeave={handleDragLeave}
-                          onDragOver={handleDragOver}
-                          onDrop={handleDrop}
-                          className={cn(
-                              "relative block w-full p-8 border-2 border-dashed rounded-lg cursor-pointer text-center hover:bg-muted/50 transition-colors",
-                              isDragging ? "border-primary bg-primary/10" : "border-input"
-                          )}
-                        >
-                          <div className="flex flex-col items-center justify-center">
-                              <UploadCloud className="w-10 h-10 text-muted-foreground mb-3" />
-                              <span className="font-semibold text-primary">
-                                  {sharedFile?.[0]?.name ? 'File selected:' : 'Choose a file or drag it here'}
-                              </span>
-                              {sharedFile?.[0]?.name && <span className="text-sm text-foreground mt-1 truncate max-w-full">{sharedFile[0].name}</span>}
-                              <p className="text-xs text-muted-foreground mt-2">
-                                  PDF or Image, Max ${MAX_SHARED_FILE_SIZE_MB}MB
-                              </p>
-                          </div>
-                          <Input
-                              id="file"
-                              type="file"
-                              {...registerSharedFile("file")}
-                              accept={ACCEPTED_SHARED_FILE_TYPES.join(',')}
-                              className="sr-only" // Visually hidden but accessible
-                              disabled={isUploadingSharedFile}
-                          />
-                      </Label>
-                      {sharedFileErrors.file && <p className="text-sm text-destructive mt-2">{sharedFileErrors.file.message as string}</p>}
-                    </div>
-
-
-                    <Button type="submit" disabled={isUploadingSharedFile} className="w-full sm:w-auto">
-                      {isUploadingSharedFile ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-                      {isUploadingSharedFile ? "Uploading..." : "Upload File"}
-                    </Button>
-                  </form>
-                </CardContent>
-              </Card>
             </TabsContent>
           </Tabs>
         </div>
