@@ -344,19 +344,18 @@ function AdminPageContent() {
 
   // Effect that specifically handles the scroll AFTER the tab has changed.
   useEffect(() => {
-    // This effect runs whenever activeTab changes.
-    // We only want to scroll if the initial scroll flag was just set.
     if (activeTab === 'users' && initialScrollDone.current) {
-      // Use a timeout to ensure the DOM has updated after the tab switch.
       const timer = setTimeout(() => {
         const uploadCard = document.getElementById('uploadFileCard');
         if (uploadCard) {
           uploadCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          // Crucially, reset the flag so this doesn't run again on tab changes
+          initialScrollDone.current = false;
         }
-      }, 100); // 100ms should be enough for the render.
+      }, 100); 
       return () => clearTimeout(timer);
     }
-  }, [activeTab]); // This effect depends ONLY on activeTab.
+  }, [activeTab]);
 
 
   const fetchProducts = useCallback(async () => {
