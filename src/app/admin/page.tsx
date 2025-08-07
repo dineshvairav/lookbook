@@ -329,27 +329,26 @@ function AdminPageContent() {
   const bannerConfigMode = watchBannerConfig("mode");
   const dealProducts = useMemo(() => products.filter(p => p.mrp && p.mrp > p.mop), [products]);
 
-  // Effect to pre-fill phone number from URL query parameter and scroll to the upload card
+  // Combined effect to handle arriving with a phone number in the URL
   useEffect(() => {
     const phoneFromQuery = searchParams.get('phoneNumber');
-    if (!authLoading && phoneFromQuery) {
+    // We only want this effect to run once on initial load if the param is present.
+    if (phoneFromQuery && !authLoading && user && user.isAdmin) {
       setActiveTab("users");
       setSharedFileValue('phoneNumber', phoneFromQuery, { shouldValidate: true });
-    }
-  }, [searchParams, setSharedFileValue, authLoading]);
 
-  // Effect to scroll to the upload card when the 'users' tab becomes active due to the URL param
-  useEffect(() => {
-    if (activeTab === 'users' && searchParams.get('phoneNumber')) {
+      // The key change: Wait for the tab content to be potentially rendered before scrolling.
+      // A timeout helps ensure the DOM has updated.
       const timer = setTimeout(() => {
         const uploadCard = document.getElementById('uploadFileCard');
         if (uploadCard) {
             uploadCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
-      }, 150); // Increased timeout slightly
+      }, 300); // 300ms delay to allow for rendering.
+
       return () => clearTimeout(timer);
     }
-  }, [activeTab, searchParams]);
+  }, [searchParams, authLoading, user, setSharedFileValue]);
 
 
   const fetchProducts = useCallback(async () => {
@@ -2033,5 +2032,3 @@ export default function AdminPage() {
     </Suspense>
   );
 }
-
-    
