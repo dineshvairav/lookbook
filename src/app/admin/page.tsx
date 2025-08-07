@@ -229,6 +229,8 @@ function AdminPageContent() {
   const [justUploadedFileId, setJustUploadedFileId] = useState<string | null>(null);
   const shareButtonRefs = useRef<Map<string, HTMLButtonElement | null>>(new Map());
 
+  const [initialScrollDone, setInitialScrollDone] = useState(false);
+
 
   const {
     register: registerSharedFile,
@@ -332,23 +334,21 @@ function AdminPageContent() {
   // Combined effect to handle arriving with a phone number in the URL
   useEffect(() => {
     const phoneFromQuery = searchParams.get('phoneNumber');
-    // We only want this effect to run once on initial load if the param is present.
-    if (phoneFromQuery && !authLoading && user && user.isAdmin) {
+    if (phoneFromQuery && !authLoading && user?.isAdmin && !initialScrollDone) {
       setActiveTab("users");
       setSharedFileValue('phoneNumber', phoneFromQuery, { shouldValidate: true });
 
-      // The key change: Wait for the tab content to be potentially rendered before scrolling.
-      // A timeout helps ensure the DOM has updated.
       const timer = setTimeout(() => {
         const uploadCard = document.getElementById('uploadFileCard');
         if (uploadCard) {
             uploadCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            setInitialScrollDone(true); // Mark as done to prevent re-scrolling
         }
-      }, 300); // 300ms delay to allow for rendering.
+      }, 300);
 
       return () => clearTimeout(timer);
     }
-  }, [searchParams, authLoading, user, setSharedFileValue]);
+  }, [searchParams, authLoading, user, setSharedFileValue, initialScrollDone]);
 
 
   const fetchProducts = useCallback(async () => {
