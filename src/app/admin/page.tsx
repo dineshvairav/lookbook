@@ -470,10 +470,9 @@ function AdminPageContent() {
   useEffect(() => {
     if (justUploadedFileId && sharedFiles.length > 0) {
       const buttonToFocus = shareButtonRefs.current.get(justUploadedFileId);
+      const tableCard = document.getElementById('manageSharedFilesCard');
       if (buttonToFocus) {
-        // This effect no longer forces a scroll to the top of the table.
-        // It will just focus the button, and the browser will handle scrolling
-        // it into view if it's off-screen.
+        tableCard?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         const timer = setTimeout(() => {
           buttonToFocus.focus({ preventScroll: false }); // Allow browser to scroll if needed
           setJustUploadedFileId(null); // Reset after focusing
