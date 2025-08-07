@@ -229,7 +229,8 @@ function AdminPageContent() {
   const [justUploadedFileId, setJustUploadedFileId] = useState<string | null>(null);
   const shareButtonRefs = useRef<Map<string, HTMLButtonElement | null>>(new Map());
 
-  const [initialScrollDone, setInitialScrollDone] = useState(false);
+  const phoneFromQuery = searchParams.get('phoneNumber');
+  const initialScrollDone = useRef(false);
 
 
   const {
@@ -331,28 +332,31 @@ function AdminPageContent() {
   const bannerConfigMode = watchBannerConfig("mode");
   const dealProducts = useMemo(() => products.filter(p => p.mrp && p.mrp > p.mop), [products]);
 
-  // Effect to scroll to the upload card when arriving with a phone number in the URL.
+  // Effect to handle URL parameter for phone number.
   useEffect(() => {
-    const phoneFromQuery = searchParams.get('phone');
-    // Only run if we have a phone number, user is loaded and admin, and the initial scroll hasn't been done yet.
-    if (phoneFromQuery && !authLoading && user?.isAdmin && !initialScrollDone) {
-      setActiveTab("users");
+    if (phoneFromQuery && !authLoading && user?.isAdmin && !initialScrollDone.current) {
       setSharedFileValue('phoneNumber', phoneFromQuery, { shouldValidate: true });
+      setActiveTab("users");
+      // Set the flag here to prevent re-triggering. The actual scroll will happen in the next effect.
+      initialScrollDone.current = true; 
+    }
+  }, [phoneFromQuery, authLoading, user, setSharedFileValue]);
 
-      // Timeout allows the tab content to render before we try to scroll.
+  // Effect that specifically handles the scroll AFTER the tab has changed.
+  useEffect(() => {
+    // This effect runs whenever activeTab changes.
+    // We only want to scroll if the initial scroll flag was just set.
+    if (activeTab === 'users' && initialScrollDone.current) {
+      // Use a timeout to ensure the DOM has updated after the tab switch.
       const timer = setTimeout(() => {
         const uploadCard = document.getElementById('uploadFileCard');
         if (uploadCard) {
-            // Perform the scroll.
-            uploadCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            // Set the flag to true so this effect doesn't run again on this visit.
-            setInitialScrollDone(true);
+          uploadCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
-      }, 300); // 300ms delay is usually enough for the UI to update.
-
-      return () => clearTimeout(timer); // Cleanup timer on unmount.
+      }, 100); // 100ms should be enough for the render.
+      return () => clearTimeout(timer);
     }
-  }, [searchParams, authLoading, user, setSharedFileValue, initialScrollDone]);
+  }, [activeTab]); // This effect depends ONLY on activeTab.
 
 
   const fetchProducts = useCallback(async () => {
@@ -470,17 +474,17 @@ function AdminPageContent() {
   useEffect(() => {
     if (justUploadedFileId && sharedFiles.length > 0) {
       const buttonToFocus = shareButtonRefs.current.get(justUploadedFileId);
-      const tableCard = document.getElementById('manageSharedFilesCard');
       if (buttonToFocus) {
-        tableCard?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         const timer = setTimeout(() => {
-          buttonToFocus.focus({ preventScroll: false }); // Allow browser to scroll if needed
-          setJustUploadedFileId(null); // Reset after focusing
-        }, 300); // Small delay to ensure render is complete
+            const tableCard = document.getElementById('manageSharedFilesCard');
+            tableCard?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            buttonToFocus.focus({ preventScroll: false });
+            setJustUploadedFileId(null);
+        }, 300);
         return () => clearTimeout(timer);
       }
     }
-  }, [sharedFiles, justUploadedFileId]);
+  }, [justUploadedFileId, sharedFiles]);
 
 
   useEffect(() => {
@@ -2033,3 +2037,5 @@ export default function AdminPage() {
     </Suspense>
   );
 }
+
+    
